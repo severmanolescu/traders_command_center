@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Trader Command Center</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+  <style>
+    /* Custom styles for drag and drop */
+    .card-dragging {
+      transform: scale(1.02);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+      opacity: 0.8;
+      z-index: 1000;
+      border: 2px solid rgb(45, 212, 191);
+    }
+    .drag-over {
+      border: 2px dashed rgb(45, 212, 191) !important;
+      background-color: rgba(45, 212, 191, 0.1);
+    }
+
+    /* News ticker animation */
+    @keyframes ticker {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .ticker-animation {
+      display: inline-block;
+      padding-right: 2rem;
+      animation: ticker 15s linear infinite;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed top-0 left-0 h-screen w-64 bg-gray-800 p-6 space-y-4 z-10 transform transition-transform duration-300 translate-x-0 shadow-lg">
+    <div class="flex items-center gap-3 mb-6">
+      <button id="hideSidebarBtn"
+        class="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg inline-flex items-center justify-center h-9 w-9 transition-all duration-200 hover:rotate-180">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <h2 class="text-xl font-bold">Trader's Panel</h2>
+    </div>
+    <nav class="space-y-2 text-sm">
+      <a href="/" class="block py-2 px-3 rounded bg-gray-700 font-semibold">Dashboard</a>
+      <a href="/crypto" class="block py-2 px-3 rounded hover:bg-gray-700">Crypto</a>
+      <a href="/forex" class="block py-2 px-3 rounded hover:bg-gray-700">Forex</a>
+      <a href="/portfolio" class="block py-2 px-3 rounded hover:bg-gray-700">Portfolio</a>
+      <a href="/history" class="block py-2 px-3 rounded hover:bg-gray-700">Trading History</a>
+      <a href="/analytics" class="block py-2 px-3 rounded hover:bg-gray-700">Analytics</a>
+      <a href="/settings" class="block py-2 px-3 rounded hover:bg-gray-700">Settings</a>
+    </nav>
+  </aside>
+
+  <!-- Toggle Button (always visible when sidebar is hidden) -->
+  <button id="showSidebarBtn"
+    class="fixed top-4 left-4 z-50 bg-teal-600 hover:bg-teal-700 text-white p-2 rounded-lg inline-flex items-center justify-center h-10 w-10 shadow-lg hidden transition-all duration-200 hover:scale-110">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+      <polyline points="12 5 19 12 12 19"></polyline>
+    </svg>
+  </button>
+
+  <!-- Main Content -->
+  <main id="mainContent"
+    class="p-6 min-h-screen bg-gray-900 text-white transition-all duration-300 ml-64">
+
+    <div class="max-w-7xl mx-auto">
+      <!-- Dashboard Content Starts Here -->
+      <header class="mb-6 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold">Trader Command Center</h1>
+          <span class="hidden md:inline-block text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-300">Alt+S to toggle sidebar</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <button class="theme-toggle bg-gray-700 hover:bg-gray-600 p-2 rounded">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          </button>
+          <div class="settings flex items-center gap-2">
+            <span>Settings</span>
+            <img src="/api/placeholder/32/32" alt="Profile" class="rounded-full w-8 h-8">
+          </div>
+        </div>
+      </header>
+
+      <!-- Dashboard Grid -->
+      <div id="dashboard" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- 1. Order Entry -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Quick Order Entry</h2>
+          </div>
+          <form class="order-entry flex flex-col gap-2">
+            <select class="p-2 rounded-lg border border-gray-700 bg-gray-900 text-white">
+              <option>Buy</option>
+              <option>Sell</option>
+            </select>
+            <input type="text" placeholder="Symbol (e.g. BTC/USD)" class="p-2 rounded-lg border border-gray-700 bg-gray-900 text-white" />
+            <input type="number" placeholder="Quantity" class="p-2 rounded-lg border border-gray-700 bg-gray-900 text-white" />
+            <select class="p-2 rounded-lg border border-gray-700 bg-gray-900 text-white">
+              <option>Market</option>
+              <option>Limit</option>
+              <option>Stop-Loss</option>
+            </select>
+            <input type="number" placeholder="Price (for limit)" class="p-2 rounded-lg border border-gray-700 bg-gray-900 text-white" />
+            <button type="submit" class="p-2 bg-teal-600 hover:bg-teal-700 rounded-lg cursor-pointer text-white">Place Order</button>
+          </form>
+        </div>
+
+        <!-- 2. Order Book -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Order Book</h2>
+          </div>
+          <div class="flex-1 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center text-gray-500 text-sm h-32">
+            [Live Depth Chart / Bids & Asks]
+          </div>
+        </div>
+
+        <!-- 3. Crypto Portfolio -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Crypto Portfolio</h2>
+            <div class="flex gap-2">
+              <button class="px-3 py-1.5 rounded text-sm bg-green-600 hover:bg-green-700 text-white">Add Asset</button>
+              <button class="px-3 py-1.5 rounded text-sm bg-teal-500 hover:bg-teal-600 text-gray-900">Manage</button>
+            </div>
+          </div>
+          <div class="portfolio-summary flex justify-around text-center">
+            <div class="flex-1">
+              Total Value
+              <span class="block text-xl mt-2">$12,345</span>
+            </div>
+            <div class="flex-1">
+              P/L (24h)
+              <span class="block text-xl mt-2 text-green-400">+1,234</span>
+            </div>
+          </div>
+          <div class="flex-1 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center text-gray-500 text-sm h-32">
+            [Asset Breakdown Chart]
+          </div>
+        </div>
+
+        <!-- 4. Watchlist Card -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Watchlist</h2>
+            <div class="flex gap-2">
+              <button class="px-3 py-1.5 rounded text-sm bg-green-600 hover:bg-green-700 text-white">Add</button>
+              <button class="px-3 py-1.5 rounded text-sm bg-teal-500 hover:bg-teal-600 text-gray-900">Edit</button>
+            </div>
+          </div>
+          <div class="watchlist-container flex flex-col gap-3" id="watchlist">
+            <div class="watchlist-item flex justify-between items-center py-3 px-4 bg-gray-900 border border-gray-700 rounded-lg cursor-grab" data-symbol="BTC/USD">
+              <span class="font-semibold">BTC/USD</span>
+              <span class="text-green-400">+2.3%</span>
+            </div>
+            <div class="watchlist-item flex justify-between items-center py-3 px-4 bg-gray-900 border border-gray-700 rounded-lg cursor-grab" data-symbol="ETH/USD">
+              <span class="font-semibold">ETH/USD</span>
+              <span class="text-red-400">-1.1%</span>
+            </div>
+            <div class="watchlist-item flex justify-between items-center py-3 px-4 bg-gray-900 border border-gray-700 rounded-lg cursor-grab" data-symbol="ADA/USD">
+              <span class="font-semibold">ADA/USD</span>
+              <span class="text-green-400">+4.8%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Price Alerts Card -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Price Alerts</h2>
+            <div class="flex gap-2">
+              <button class="px-3 py-1.5 rounded text-sm bg-green-600 hover:bg-green-700 text-white">Add</button>
+              <button class="px-3 py-1.5 rounded text-sm bg-teal-500 hover:bg-teal-600 text-gray-900">Edit</button>
+            </div>
+          </div>
+          <div class="alerts-container flex flex-col gap-3" id="alerts">
+            <div class="alert-item flex justify-between items-center py-3 px-4 bg-gray-900 border border-gray-700 rounded-lg cursor-grab" data-symbol="BTC">
+              <span class="font-semibold">BTC</span>
+              <span>&gt; 60,000</span>
+            </div>
+            <div class="alert-item flex justify-between items-center py-3 px-4 bg-gray-900 border border-gray-700 rounded-lg cursor-grab" data-symbol="ETH">
+              <span class="font-semibold">ETH</span>
+              <span>&lt; 1,800</span>
+            </div>
+            <div class="alert-item flex justify-between items-center py-3 px-4 bg-gray-900 border border-gray-700 rounded-lg cursor-grab" data-symbol="ADA">
+              <span class="font-semibold">ADA</span>
+              <span>&gt; 1.50</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Advanced Charts -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200 md:col-span-2">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Advanced Charting Suite</h2>
+          </div>
+          <div class="flex-1 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center text-gray-500 text-sm h-64">
+            [Embedded Chart.js / TradingView with RSI, MACD, etc.]
+          </div>
+        </div>
+
+        <!-- 7. Portfolio Analytics -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Portfolio Risk Metrics</h2>
+          </div>
+          <div class="flex-1 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center text-gray-500 text-sm h-40">
+            [Diversification Gauge & VaR]
+          </div>
+        </div>
+
+        <!-- 8. Economic Calendar -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Economic Calendar</h2>
+          </div>
+          <div class="flex-1 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center text-gray-500 text-sm h-40">
+            [Upcoming Releases & Impact Flags]
+          </div>
+        </div>
+
+        <!-- 9. Market Heatmap -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Market Heatmap</h2>
+          </div>
+          <div class="flex-1 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center text-gray-500 text-sm h-40">
+            [Sector/Asset Class Performance]
+          </div>
+        </div>
+
+        <!-- 10. Trade History & Reports -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Trade History</h2>
+          </div>
+          <table class="w-full border-collapse">
+            <thead>
+              <tr class="text-left text-gray-400">
+                <th class="py-2">Date</th>
+                <th class="py-2">Pair</th>
+                <th class="py-2">Type</th>
+                <th class="py-2">P/L</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-gray-700">
+                <td class="py-2">2025-05-14</td>
+                <td class="py-2">EUR/USD</td>
+                <td class="py-2">Win</td>
+                <td class="py-2 text-green-400">+84.58</td>
+              </tr>
+              <tr>
+                <td class="py-2">2025-05-13</td>
+                <td class="py-2">GBP/JPY</td>
+                <td class="py-2">Loss</td>
+                <td class="py-2 text-red-400">-129</td>
+              </tr>
+            </tbody>
+          </table>
+          <button class="px-3 py-1.5 rounded text-sm bg-teal-500 hover:bg-teal-600 text-gray-900 mt-2 w-fit">Export CSV</button>
+        </div>
+
+        <!-- 11. Strategy Builder -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Backtest & Strategy Builder</h2>
+          </div>
+          <div class="flex-1 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center text-gray-500 text-sm h-40">
+            [Rule-Based Designer]
+          </div>
+        </div>
+
+        <!-- 12. AI Insights & Sentiment -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">AI Insights & Sentiment</h2>
+          </div>
+          <div class="flex-1 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center text-gray-500 text-sm h-40">
+            [Sentiment Gauge & ML Signals]
+          </div>
+        </div>
+
+        <!-- 13. Customization Panel -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Layout Settings</h2>
+          </div>
+          <p class="text-gray-300">Drag and drop to rearrange widgets, toggle visibility, save layouts.</p>
+        </div>
+
+        <!-- 14. News Ticker -->
+        <div class="card bg-gray-800 rounded-xl p-4 flex flex-col gap-4 cursor-move transition duration-200 col-span-full">
+          <div class="card-header flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Live News Ticker</h2>
+          </div>
+          <div class="news-ticker overflow-hidden whitespace-nowrap">
+            <p class="ticker-animation">UK GDP rises modestly… &nbsp;|&nbsp; Ethereum breaks out… &nbsp;|&nbsp; Federal Reserve meets today…</p>
+          </div>
+        </div>
+      </div>
+      <!-- Dashboard Content Ends Here -->
+    </div>
+  </main>
+
+  <!-- Sidebar Toggle Script -->
+  <script>
+    const sidebar = document.getElementById("sidebar");
+    const hideBtn = document.getElementById("hideSidebarBtn");
+    const showBtn = document.getElementById("showSidebarBtn");
+    const main = document.getElementById("mainContent");
+
+    // Save sidebar state in localStorage
+    const saveSidebarState = (isOpen) => {
+      localStorage.setItem('sidebarOpen', isOpen ? 'true' : 'false');
+    };
+
+    // Function to close sidebar
+    const closeSidebar = () => {
+      sidebar.classList.add("-translate-x-full");
+      main.classList.remove("ml-64");
+      showBtn.classList.remove("hidden");
+      saveSidebarState(false);
+    };
+
+    // Function to open sidebar
+    const openSidebar = () => {
+      sidebar.classList.remove("-translate-x-full");
+      main.classList.add("ml-64");
+      showBtn.classList.add("hidden");
+      saveSidebarState(true);
+    };
+
+    // Add event listeners
+    hideBtn.addEventListener("click", closeSidebar);
+    showBtn.addEventListener("click", openSidebar);
+
+    // Keyboard shortcut for toggle (Alt+S)
+    document.addEventListener('keydown', function(e) {
+      if (e.altKey && e.key === 's') {
+        if (sidebar.classList.contains('-translate-x-full')) {
+          openSidebar();
+        } else {
+          closeSidebar();
+        }
+        e.preventDefault();
+      }
+    });
+
+    // Check saved state on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedState = localStorage.getItem('sidebarOpen');
+      if (savedState === 'false') {
+        closeSidebar();
+      }
+    });
+  </script>
+
+  <!-- Dashboard Sortable Scripts -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Watchlist Sortable
+      const watchlist = document.getElementById('watchlist');
+      if (watchlist) {
+        Sortable.create(watchlist, {
+          animation: 150,
+          ghostClass: 'drag-over',
+          onEnd: () => {
+            const order = Array.from(watchlist.children).map(item => item.dataset.symbol);
+            localStorage.setItem('watchlistOrder', JSON.stringify(order));
+          }
+        });
+
+        // Restore watchlist order from localStorage
+        const savedWatchlistOrder = localStorage.getItem('watchlistOrder');
+        if (savedWatchlistOrder) {
+          const orderArray = JSON.parse(savedWatchlistOrder);
+          orderArray.forEach(symbol => {
+            const item = watchlist.querySelector(`[data-symbol="${symbol}"]`);
+            if (item) {
+              watchlist.appendChild(item);
+            }
+          });
+        }
+      }
+
+      // Price Alerts Sortable
+      const alerts = document.getElementById('alerts');
+      if (alerts) {
+        Sortable.create(alerts, {
+          animation: 150,
+          ghostClass: 'drag-over',
+          onEnd: () => {
+            const order = Array.from(alerts.children).map(item => item.dataset.symbol);
+            localStorage.setItem('alertsOrder', JSON.stringify(order));
+          }
+        });
+
+        // Restore alerts order from localStorage
+        const savedAlertsOrder = localStorage.getItem('alertsOrder');
+        if (savedAlertsOrder) {
+          const orderArray = JSON.parse(savedAlertsOrder);
+          orderArray.forEach(symbol => {
+            const item = alerts.querySelector(`[data-symbol="${symbol}"]`);
+            if (item) {
+              alerts.appendChild(item);
+            }
+          });
+        }
+      }
+
+      // Dashboard cards Sortable
+      const dashboard = document.getElementById('dashboard');
+      if (dashboard) {
+        Sortable.create(dashboard, {
+          animation: 150,
+          ghostClass: 'drag-over',
+          dragClass: 'card-dragging',
+          filter: '.card form, .card table, .card button, .card input, .card select', // Prevent dragging from starting on interactive elements
+          preventOnFilter: true,
+          onEnd: () => {
+            const cardOrder = Array.from(dashboard.children).map(card => {
+              const title = card.querySelector('.card-header h2');
+              return title ? title.textContent : '';
+            });
+            localStorage.setItem('dashboardOrder', JSON.stringify(cardOrder));
+          }
+        });
+
+        // Restore dashboard card order from localStorage
+        const savedDashboardOrder = localStorage.getItem('dashboardOrder');
+        if (savedDashboardOrder) {
+          const orderArray = JSON.parse(savedDashboardOrder);
+          orderArray.forEach(title => {
+            if (!title) return;
+
+            const cards = Array.from(dashboard.children);
+            for (const card of cards) {
+              const cardTitle = card.querySelector('.card-header h2');
+              if (cardTitle && cardTitle.textContent === title) {
+                dashboard.appendChild(card);
+                break;
+              }
+            }
+          });
+        }
+      }
+    });
+  </script>
+</body>
+</html>

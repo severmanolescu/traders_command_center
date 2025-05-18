@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Crypto Portfolio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <style>
+    /* Custom styles for drag and drop */
+    .card-dragging {
+      transform: scale(1.02);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+      opacity: 0.8;
+      z-index: 1000;
+      border: 2px solid rgb(45, 212, 191);
+    }
+    .drag-over {
+      border: 2px dashed rgb(45, 212, 191) !important;
+      background-color: rgba(45, 212, 191, 0.1);
+    }
+
+    /* News ticker animation */
+    @keyframes ticker {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .ticker-animation {
+      display: inline-block;
+      padding-right: 2rem;
+      animation: ticker 15s linear infinite;
+    }
+    
+    /* Custom sparkline animation */
+    @keyframes sparkFade {
+      0% { opacity: 0; }
+      50% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .spark-dot {
+      animation: sparkFade 2s infinite;
+    }
+      .expanded-table {
+    position: fixed;
+    top: 5%;
+    left: 5%;
+    right: 5%;
+    bottom: 5%;
+    width: 90%;
+    height: 90%;
+    z-index: 1000;
+    overflow: auto;
+    background-color: rgb(31, 41, 55); /* bg-gray-800 */
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .expanded-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .expanded-container {
+    overflow: auto;
+    flex-grow: 1;
+  }
+
+  .overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+  }
+
+  .hidden {
+    display: none;
+  }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed top-0 left-0 h-screen w-64 bg-gray-800 p-6 space-y-4 z-10 transform transition-transform duration-300 translate-x-0 shadow-lg">
+    <div class="flex items-center gap-3 mb-6">
+      <button id="hideSidebarBtn"
+        class="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg inline-flex items-center justify-center h-9 w-9 transition-all duration-200 hover:rotate-180">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <h2 class="text-xl font-bold">Trader's Panel</h2>
+    </div>
+    <nav class="space-y-2 text-sm">
+      <a href="/" class="block py-2 px-3 rounded hover:bg-gray-700">Dashboard</a>
+      <a href="/crypto" class="block py-2 px-3 rounded hover:bg-gray-700">Crypto</a>
+      <a href="/forex" class="block py-2 px-3 rounded hover:bg-gray-700">Forex</a>
+      <a href="/portfolio" class="block py-2 px-3 rounded bg-gray-700 font-semibold">Portfolio</a>
+      <a href="/history" class="block py-2 px-3 rounded hover:bg-gray-700">Trading History</a>
+      <a href="/analytics" class="block py-2 px-3 rounded hover:bg-gray-700">Analytics</a>
+      <a href="/settings" class="block py-2 px-3 rounded hover:bg-gray-700">Settings</a>
+    </nav>
+  </aside>
+
+  <!-- Toggle Button (always visible when sidebar is hidden) -->
+  <button id="showSidebarBtn"
+    class="fixed top-4 left-4 z-50 bg-teal-600 hover:bg-teal-700 text-white p-2 rounded-lg inline-flex items-center justify-center h-10 w-10 shadow-lg hidden transition-all duration-200 hover:scale-110">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+      <polyline points="12 5 19 12 12 19"></polyline>
+    </svg>
+  </button>
+
+  <!-- Main Content -->
+  <main id="mainContent"
+    class="p-6 min-h-screen bg-gray-900 text-white transition-all duration-300 ml-64">
+
+    <div class="max-w-7xl mx-auto">
+      <header class="mb-6 flex flex-col sm:flex-row justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold">Crypto Portfolio</h1>
+          <span class="hidden md:inline-block text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-300">Alt+S to toggle sidebar</span>
+          <span class="hidden md:inline-block text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-300">Alt+J to toggle asset form</span>
+        </div>
+        <div class="flex flex-wrap sm:flex-nowrap gap-3">
+          <button id="addAssetBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-4 py-2 rounded-lg shadow flex items-center gap-2 flex-1 sm:flex-initial justify-center sm:justify-start">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Add Asset
+          </button>
+          <button id="importBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg shadow flex items-center gap-2 flex-1 sm:flex-initial justify-center sm:justify-start">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            Import
+          </button>
+          <button id="exportBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg shadow flex items-center gap-2 flex-1 sm:flex-initial justify-center sm:justify-start">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export
+          </button>
+          <div class="relative">
+            <button id="portfolioOptionsBtn" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg shadow flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+            </button>
+            <div id="portfolioOptions" class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 hidden z-10">
+              <div class="py-1" role="menu" aria-orientation="vertical">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white" role="menuitem">Create New Portfolio</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white" role="menuitem">Rebalance Portfolio</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white" role="menuitem">Tax Reports</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white" role="menuitem">Portfolio Settings</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Add Asset Form -->
+    <form id="assetForm" action="/portfolio/add" method="POST" class="bg-gray-800 p-6 rounded-xl shadow-lg mb-10 border border-gray-700">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add New Asset
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label for="asset" class="block text-sm font-medium mb-1 text-gray-300">Asset</label>
+            <select name="asset" id="asset" class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white">
+              <option value="">Select Asset</option>
+              <option value="BTC">Bitcoin (BTC)</option>
+              <option value="ETH">Ethereum (ETH)</option>
+              <option value="SOL">Solana (SOL)</option>
+              <option value="ADA">Cardano (ADA)</option>
+              <option value="DOT">Polkadot (DOT)</option>
+              <option value="DOGE">Dogecoin (DOGE)</option>
+              <option value="AVAX">Avalanche (AVAX)</option>
+              <option value="MATIC">Polygon (MATIC)</option>
+              <option value="LINK">Chainlink (LINK)</option>
+              <option value="XRP">Ripple (XRP)</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="amount" class="block text-sm font-medium mb-1 text-gray-300">Amount</label>
+            <input type="number" name="amount" id="amount" class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white" step="0.000001" required>
+          </div>
+
+          <div>
+            <label for="purchasePrice" class="block text-sm font-medium mb-1 text-gray-300">Purchase Price (USD)</label>
+            <input type="number" name="purchasePrice" id="purchasePrice" class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white" step="0.01" required>
+          </div>
+
+          <div>
+            <label for="purchaseDate" class="block text-sm font-medium mb-1 text-gray-300">Purchase Date</label>
+            <input type="date" name="purchaseDate" id="purchaseDate" class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white" required>
+          </div>
+
+          <div>
+            <label for="exchange" class="block text-sm font-medium mb-1 text-gray-300">Exchange</label>
+            <select name="exchange" id="exchange" class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white">
+              <option value="binance">Binance</option>
+              <option value="coinbase">Coinbase</option>
+              <option value="kraken">Kraken</option>
+              <option value="ftx">FTX</option>
+              <option value="kucoin">KuCoin</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="wallet" class="block text-sm font-medium mb-1 text-gray-300">Wallet (Optional)</label>
+            <input type="text" name="wallet" id="wallet" class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white" placeholder="Wallet Address or Label">
+          </div>
+
+          <div class="md:col-span-3">
+            <label for="notes" class="block text-sm font-medium mb-1 text-gray-300">Notes</label>
+            <textarea name="notes" id="notes" rows="2" class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white" placeholder="Additional information about this purchase"></textarea>
+          </div>
+        </div>
+        <div class="mt-6 flex gap-4 flex-wrap">
+          <button type="submit" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-2 rounded-lg shadow">Add to Portfolio</button>
+          <button type="reset" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-6 py-2 rounded-lg shadow">Clear Form</button>
+          <button type="button" id="cancelAddAsset" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2 rounded-lg shadow">Cancel</button>
+        </div>
+      </form>
+
+      <!-- Portfolio Cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+
+        <!-- Portfolio Value Card -->
+        <div class="bg-gray-800 rounded-lg shadow p-4 border border-gray-700">
+          <h2 class="text-base font-semibold mb-3">Portfolio Value</h2>
+          <div class="flex items-center gap-2">
+            <p class="text-2xl font-bold">{{portfolio_value}}</p>
+            <span class="{{ 'text-green-500' if is_positive else 'text-red-500' }} text-sm font-medium flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1">
+                {% if is_positive %}
+                <polyline points="18 15 12 9 6 15"></polyline>
+                {% else %}
+                <polyline points="6 9 12 15 18 9"></polyline>
+                {% endif %}
+              </svg>
+              {{change_percentage}}
+            </span>
+          </div>
+
+          <div class="mt-3 h-6">
+            <canvas id="portfolioChart"></canvas>
+          </div>
+
+          <div class="mt-3 flex justify-between text-xs text-gray-400">
+            <span>All Time Low: {{all_time_low}}</span>
+            <span>All Time High: {{all_time_high}}</span>
+          </div>
+        </div>
+
+        <!-- Profit & Loss Card -->
+        <div class="bg-gray-800 rounded-lg shadow p-4 border border-gray-700">
+          <h2 class="text-base font-semibold mb-2">Profit & Loss</h2>
+          <div class="grid grid-cols-2 gap-y-3">
+            <!-- 24h -->
+            <div class="flex flex-col">
+              <p class="text-xs text-gray-400 mb-1">24h</p>
+              <div class="flex items-center space-x-2">
+                <p class="{{ 'text-green-500' if is_positive_24h else 'text-red-500' }} text-sm font-medium">
+                  {{ '+' if is_positive_24h else '' }}{{profit_24h}}
+                </p>
+                <p class="{{ 'text-green-400' if is_positive_24h else 'text-red-400' }} text-xs">
+                  {{ '+' if is_positive_24h else '' }}{{profit_percentage_24}}
+                </p>
+              </div>
+            </div>
+
+            <!-- 7d -->
+            <div class="flex flex-col">
+              <p class="text-xs text-gray-400 mb-1">7d</p>
+              <div class="flex items-center space-x-2">
+                <p class="{{ 'text-green-500' if is_positive_7d else 'text-red-500' }} text-sm font-medium">
+                  {{ '+' if is_positive_7d else '' }}{{profit_7d}}
+                </p>
+                <p class="{{ 'text-green-400' if is_positive_7d else 'text-red-400' }} text-xs">
+                  {{ '+' if is_positive_7d else '' }}{{profit_percentage_7d}}
+                </p>
+              </div>
+            </div>
+
+            <!-- 30d -->
+            <div class="flex flex-col">
+              <p class="text-xs text-gray-400 mb-1">30d</p>
+              <div class="flex items-center space-x-2">
+                <p class="{{ 'text-green-500' if is_positive_30d else 'text-red-500' }} text-sm font-medium">
+                  {{ '+' if is_positive_30d else '' }}{{profit_30d}}
+                </p>
+                <p class="{{ 'text-green-400' if is_positive_30d else 'text-red-400' }} text-xs">
+                  {{ '+' if is_positive_30d else '' }}{{profit_percentage_30d}}
+                </p>
+              </div>
+            </div>
+
+            <!-- All Time -->
+            <div class="flex flex-col">
+              <p class="text-xs text-gray-400 mb-1">All Time</p>
+              <div class="flex items-center space-x-2">
+                <p class="{{ 'text-green-500' if is_positive_all_time else 'text-red-500' }} text-sm font-medium">
+                  {{ '+' if is_positive_all_time else '' }}{{all_time_profit}}
+                </p>
+                <p class="{{ 'text-green-400' if is_positive_all_time else 'text-red-400' }} text-xs">
+                  {{ '+' if is_positive_all_time else '' }}{{all_time_profit_percentage}}%
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Portfolio Metrics Card -->
+        <div class="bg-gray-800 rounded-lg shadow p-4 border border-gray-700">
+          <h2 class="text-base font-semibold mb-2">Portfolio Metrics</h2>
+
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+            <!-- Assets -->
+            <div class="flex flex-col">
+              <p class="text-xs text-gray-400 mb-1">Assets</p>
+              <p class="text-lg font-medium">{{assets_count}}</p>
+            </div>
+
+            <!-- Diversity Score -->
+            <div class="flex flex-col">
+              <p class="text-xs text-gray-400 mb-1">Diversity Score</p>
+              <p class="text-lg font-medium">{{diversity_score}}<span class="text-sm text-gray-400">/10</span></p>
+            </div>
+
+            <!-- Risk Level -->
+            <div class="flex flex-col">
+              <p class="text-xs text-gray-400 mb-1">Risk Level</p>
+              <div class="flex flex-col">
+                <p class="text-lg font-medium
+                  {% if risk_string == 'Very Low' %}text-blue-500{% endif %}
+                  {% if risk_string == 'Low' %}text-green-500{% endif %}
+                  {% if risk_string == 'Medium' %}text-yellow-500{% endif %}
+                  {% if risk_string == 'High' %}text-orange-500{% endif %}
+                  {% if risk_string == 'Very High' %}text-red-500{% endif %}">
+                  {{risk_string}}
+                </p>
+                <p class="text-xs text-gray-400">{{risk_level}}/100</p>
+              </div>
+            </div>
+
+            <!-- Volatility -->
+            <div class="flex flex-col">
+              <p class="text-xs text-gray-400 mb-1">Volatility</p>
+              <p class="text-lg font-medium">{{portfolio_volatility}}%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters Section -->
+      <div class="bg-gray-800 rounded-xl p-4 sm:p-5 mb-6 border border-gray-700 shadow-lg">
+        <div class="flex flex-wrap justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            Filters
+          </h2>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-300">Group by:</span>
+              <select class="bg-gray-900 border border-gray-700 rounded p-1 text-sm text-white">
+                <option>None</option>
+                <option>Exchange</option>
+                <option>Purchase Date</option>
+                <option>Performance</option>
+              </select>
+            </div>
+            <button id="resetFilters" class="text-sm text-gray-400 hover:text-white">Reset</button>
+          </div>
+        </div>
+
+        <form class="flex flex-wrap gap-4">
+          <div class="w-full sm:w-auto">
+            <select class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white">
+              <option value="">All Assets</option>
+              <option>Top Performers</option>
+              <option>Bottom Performers</option>
+              <option>Recently Added</option>
+            </select>
+          </div>
+          <div class="w-full sm:w-auto">
+            <select class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white">
+              <option value="">All Exchanges</option>
+              <option>Binance</option>
+              <option>Coinbase</option>
+              <option>Kraken</option>
+              <option>FTX</option>
+              <option>KuCoin</option>
+            </select>
+          </div>
+          <div class="w-full sm:w-auto">
+            <select class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white">
+              <option value="">All Time Periods</option>
+              <option>Recent (Last 30 days)</option>
+              <option>Q1 2025</option>
+              <option>Q4 2024</option>
+              <option>Q3 2024</option>
+            </select>
+          </div>
+          <div class="w-full sm:w-auto">
+            <select class="w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white">
+              <option value="">Sort By: Default</option>
+              <option>Value (High to Low)</option>
+              <option>Value (Low to High)</option>
+              <option>Performance (Best)</option>
+              <option>Performance (Worst)</option>
+              <option>Alphabetical</option>
+            </select>
+          </div>
+          <div class="w-full sm:w-auto">
+            <button type="submit" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-4 py-2 rounded-lg shadow w-full">
+              Apply Filters
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Holdings Table -->
+      <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg overflow-x-auto mb-8">
+        <h2 class="text-lg font-semibold mb-4">Holdings</h2>
+        <table class="w-full min-w-max">
+          <thead>
+            <tr class="text-left text-gray-400 border-b border-gray-700">
+              <th class="pb-3 font-medium">Asset</th>
+              <th class="pb-3 font-medium">Holdings</th>
+              <th class="pb-3 font-medium">Avg Price</th>
+              <th class="pb-3 font-medium">Current Price</th>
+              <th class="pb-3 font-medium">Value</th>
+              <th class="pb-3 font-medium">24h</th>
+              <th class="pb-3 font-medium">7d</th>
+              <th class="pb-3 font-medium">PnL</th>
+              <th class="pb-3 font-medium">Allocation</th>
+              <th class="pb-3 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in holdings %}
+              <tr class="border-b border-gray-700">
+                <td class="py-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-full overflow-hidden">
+                      {% if item.coin_info.icon %}
+                        <img src="{{ item.coin_info.icon }}"
+                             alt="{{ item.symbol }}"
+                             class="w-full h-full object-cover"
+                             onerror="this.style.display='none'; var div = document.createElement('div'); div.className='w-full h-full bg-orange-500 flex items-center justify-center text-xs font-bold'; div.textContent='{{ item.symbol[0] }}'; this.parentNode.appendChild(div);">
+                      {% else %}
+                        <div class="w-full h-full bg-orange-500 flex items-center justify-center text-xs font-bold">
+                          {{ item.symbol[0] }}
+                        </div>
+                      {% endif %}
+                    </div>
+                    <div>
+                      <p class="font-medium">{{ item.asset }}</p>
+                      <p class="text-xs text-gray-400">{{ item.symbol }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-4">
+                  <p class="font-medium">{{ item.holdings }} {{ item.symbol }}</p>
+                  <p class="text-xs text-gray-400">{{ item.exchange }}</p>
+                </td>
+                <td class="py-4">
+                  <p class="font-medium">${{ "{:,.2f}".format(item.avg_price) }}</p>
+                </td>
+                <td class="py-4">
+                  <p class="font-medium">${{ "{:,.2f}".format(item.current_price) }}</p>
+                  <div class="flex mt-1 h-1 w-16 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="bg-{% if item.current_price >= item.avg_price %}green{% else %}red{% endif %}-500 h-full"
+                         style="width: {{ (item.current_price / item.avg_price * 100)|round|int }}%"></div>
+                  </div>
+                </td>
+                <td class="py-4">
+                  <p class="font-medium">${{ "{:,.2f}".format(item.value) }}</p>
+                  <p class="text-xs text-gray-400">{{ "{:.2f}".format(item.percentage) }}%</p>
+                </td>
+                <td class="py-4">
+                  <p class="text-{% if item.day_change >= 0 %}green{% else %}red{% endif %}-500 font-medium">
+                    {% if item.day_change >= 0 %}+{% endif %}{{ "{:.1f}".format(item.day_change) }}%
+                  </p>
+                </td>
+                <td class="py-4">
+                  <p class="text-{% if item.week_change >= 0 %}green{% else %}red{% endif %}-500 font-medium">
+                    {% if item.week_change >= 0 %}+{% endif %}{{ "{:.1f}".format(item.week_change) }}%
+                  </p>
+                </td>
+                <td class="py-4">
+                  <p class="text-{% if item.pnl_amount >= 0 %}green{% else %}red{% endif %}-500 font-medium">
+                    {% if item.pnl_amount >= 0 %}+{% endif %}${{ "{:,.2f}".format(item.pnl_amount) }}
+                  </p>
+                  <p class="text-xs text-{% if item.pnl_percentage >= 0 %}green{% else %}red{% endif %}-400">
+                    {% if item.pnl_percentage >= 0 %}+{% endif %}{{ "{:.1f}".format(item.pnl_percentage) }}%
+                  </p>
+                </td>
+                <td class="py-4">
+                  <div class="w-16 bg-gray-700 rounded-full h-2">
+                    <div class="bg-teal-500 h-full rounded-full" style="width: {{ item.allocation }}%"></div>
+                  </div>
+                </td>
+                <td class="py-4">
+                  <div class="flex gap-1">
+                    <button class="p-1.5 bg-teal-600 hover:bg-teal-700 rounded-lg" title="Buy More">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                    <button class="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg" title="Sell">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                    <button class="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg" title="More Options">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <!-- Show More / Pagination -->
+        <div class="flex justify-between items-center mt-5"></div>
+      </div>
+
+      <!-- Transaction History -->
+      <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg overflow-x-auto mb-8">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">Recent Transactions</h2>
+          <button id="viewAllBtn" class="text-teal-400 hover:text-teal-300 text-sm focus:outline-none">
+            View All
+          </button>
+        </div>
+        <table class="w-full min-w-max">
+          <thead>
+            <tr class="text-left text-gray-400 border-b border-gray-700">
+              <th class="pb-3 font-medium">Date</th>
+              <th class="pb-3 font-medium">Type</th>
+              <th class="pb-3 font-medium">Asset</th>
+              <th class="pb-3 font-medium">Amount</th>
+              <th class="pb-3 font-medium">Price</th>
+              <th class="pb-3 font-medium">Total</th>
+              <th class="pb-3 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody id="transactionTable">
+            <!-- First 5 transactions - always visible -->
+            {% for tx in transactions[:5] %}
+            <tr class="border-b border-gray-700 hover:bg-gray-750">
+              <td class="py-3 pr-4 text-sm">{{ tx.datetime.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td class="py-3 pr-4">
+                <span class="
+                  {% if tx.action == 'BUY' %}text-green-500{% else %}text-red-500{% endif %}
+                  px-2 py-1 rounded text-xs font-medium bg-opacity-20
+                  {% if tx.action == 'BUY' %}bg-green-500{% else %}bg-red-500{% endif %}
+                ">
+                  {{ tx.action }}
+                </span>
+              </td>
+              <td class="py-3 pr-4 font-medium">{{ tx.symbol }}</td>
+              <td class="py-3 pr-4 text-sm">{{tx.amount}}</td>
+              <td class="py-3 pr-4 text-sm">{{tx.price}}</td>
+              <td class="py-3 pr-4 text-sm">${{ "{:,.2f}".format(tx.total) }}</td>
+              <td class="py-3 pr-4 text-sm">
+                <span class="px-2 py-1 rounded-full bg-green-500 bg-opacity-20 text-green-500 text-xs">Completed</span>
+              </td>
+            </tr>
+            {% endfor %}
+
+            <!-- Remaining transactions - initially hidden -->
+            {% for tx in transactions[5:] %}
+            <tr class="border-b border-gray-700 hover:bg-gray-750 hidden transaction-extra-row">
+              <td class="py-3 pr-4 text-sm">{{ tx.datetime.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td class="py-3 pr-4">
+                <span class="
+                  {% if tx.action == 'BUY' %}text-green-500{% else %}text-red-500{% endif %}
+                  px-2 py-1 rounded text-xs font-medium bg-opacity-20
+                  {% if tx.action == 'BUY' %}bg-green-500{% else %}bg-red-500{% endif %}
+                ">
+                  {{ tx.action }}
+                </span>
+              </td>
+              <td class="py-3 pr-4 font-medium">{{ tx.symbol }}</td>
+              <td class="py-3 pr-4 text-sm">{{tx.amount}}</td>
+              <td class="py-3 pr-4 text-sm">{{tx.price}}</td>
+              <td class="py-3 pr-4 text-sm">${{ "{:,.2f}".format(tx.total) }}</td>
+              <td class="py-3 pr-4 text-sm">
+                <span class="px-2 py-1 rounded-full bg-green-500 bg-opacity-20 text-green-500 text-xs">Completed</span>
+              </td>
+            </tr>
+            {% endfor %}
+
+            {% if not transactions %}
+            <tr>
+              <td colspan="7" class="py-4 text-center text-gray-400">No transactions found</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+
+        <div id="showMoreLess" class="mt-4 text-center {% if transactions|length <= 5 %}hidden{% endif %}">
+          <button id="showMoreBtn" class="text-sm text-teal-400 hover:text-teal-300 focus:outline-none">
+            Show more
+          </button>
+        </div>
+      </div>
+
+      <!-- Advanced Portfolio Analytics -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+       <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">Performance</h2>
+          <div class="flex gap-2">
+            <button class="period-btn px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" data-period="1D">1D</button>
+            <button class="period-btn px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" data-period="1W">1W</button>
+            <button class="period-btn px-2 py-1 bg-teal-600 hover:bg-teal-700 rounded text-xs active" data-period="1M">1M</button>
+            <button class="period-btn px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" data-period="3M">3M</button>
+            <button class="period-btn px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" data-period="1Y">1Y</button>
+            <button class="period-btn px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" data-period="All">All</button>
+          </div>
+        </div>
+        <div class="h-64">
+          <canvas id="performanceChart"></canvas>
+        </div>
+       </div>
+
+        <!-- Risk Analysis -->
+        <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg">
+          <div class="flex justify-between items-center mb-4 relative">
+              <h2 class="text-lg font-semibold">Risk Analysis</h2>
+              <div class="relative">
+                <button class="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg risk-analysis-info-button" title="More Info">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+
+                <!-- Enhanced tooltip with more styling -->
+                <div id="riskTooltip" class="absolute right-0 top-full mt-2 w-80 bg-[#0e1524] rounded-lg border border-[#1e2942] shadow-xl hidden z-10">
+                  <!-- Tooltip arrow -->
+                  <div class="absolute -top-2 right-2 w-4 h-4 rotate-45 bg-[#0e1524] border-l border-t border-[#1e2942]"></div>
+
+                  <div class="p-4">
+                    <h3 class="text-sm font-medium text-white mb-3">Understanding Risk Metrics</h3>
+
+                    <div class="space-y-3 text-xs">
+                      <div class="flex">
+                        <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                        <div>
+                          <p class="font-semibold text-white">Volatility</p>
+                          <p class="text-gray-300">Measures how much your portfolio fluctuates. Lower values indicate more stable returns.</p>
+                        </div>
+                      </div>
+
+                      <div class="flex">
+                        <div class="w-2 h-2 rounded-full bg-yellow-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                        <div>
+                          <p class="font-semibold text-white">Diversification</p>
+                          <p class="text-gray-300">How well your investments are spread across different assets to reduce risk.</p>
+                        </div>
+                      </div>
+
+                      <div class="flex">
+                        <div class="w-2 h-2 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                        <div>
+                          <p class="font-semibold text-white">Max Drawdown</p>
+                          <p class="text-gray-300">Largest historical percentage drop from peak to trough in your portfolio's value.</p>
+                        </div>
+                      </div>
+
+                      <div class="flex">
+                        <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 mr-2 flex-shrink-0"></div>
+                        <div>
+                          <p class="font-semibold text-white">Sharpe Ratio</p>
+                          <p class="text-gray-300">Measures risk-adjusted return. Higher values indicate better returns relative to risk.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+              <h3 class="text-sm font-medium text-gray-400 mb-2">Volatility</h3>
+              <div class="flex justify-between items-end">
+                <p class="text-xl font-bold">{{ portfolio_volatility }}</p>
+                <div class="flex items-center text-{{ risk_levels.volatility.color }}-500 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  {{ risk_levels.volatility.level }}
+                </div>
+              </div>
+              <div class="mt-4 h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div class="bg-{{ risk_levels.volatility.color }}-500 h-full" style="width: {{ risk_levels.volatility.width }}"></div>
+              </div>
+            </div>
+            <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+              <h3 class="text-sm font-medium text-gray-400 mb-2">Diversification</h3>
+              <div class="flex justify-between items-end">
+                <p class="text-xl font-bold">{{ diversity_score }}/10</p>
+                <div class="flex items-center text-{{ risk_levels.diversity.color }}-500 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  {{ risk_levels.diversity.level }}
+                </div>
+              </div>
+              <div class="mt-4 h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div class="bg-{{ risk_levels.diversity.color }}-500 h-full" style="width: {{ risk_levels.diversity.width }}"></div>
+              </div>
+            </div>
+            <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+              <h3 class="text-sm font-medium text-gray-400 mb-2">Max Drawdown</h3>
+              <div class="flex justify-between items-end">
+                <p class="text-xl font-bold">{{ max_drawdown }}</p>
+                <div class="flex items-center text-{{ risk_levels.max_drawdown.color }}-500 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  {{ risk_levels.max_drawdown.level }}
+                </div>
+              </div>
+              <div class="mt-4 h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div class="bg-{{ risk_levels.max_drawdown.color }}-500 h-full" style="width: {{ risk_levels.max_drawdown.width }}"></div>
+              </div>
+            </div>
+            <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+              <h3 class="text-sm font-medium text-gray-400 mb-2">Sharpe Ratio</h3>
+              <div class="flex justify-between items-end">
+                <p class="text-xl font-bold">{{ sharpe_ratio }}</p>
+                <div class="flex items-center text-{{ risk_levels.sharpe_ratio.color }}-500 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  {{ risk_levels.sharpe_ratio.level }}
+                </div>
+              </div>
+              <div class="mt-4 h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div class="bg-{{ risk_levels.sharpe_ratio.color }}-500 h-full" style="width: {{ risk_levels.sharpe_ratio.width }}"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tax Summary -->
+      <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg mb-8">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">Tax Summary (2025)</h2>
+          <div class="flex gap-2">
+            <button class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 rounded text-sm">Generate Report</button>
+            <button class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Export
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <h3 class="text-sm font-medium text-gray-400 mb-1">Total Gains</h3>
+            <p class="text-xl font-bold text-green-500">$3,214.86</p>
+          </div>
+          <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <h3 class="text-sm font-medium text-gray-400 mb-1">Short-term Gains</h3>
+            <p class="text-xl font-bold">$1,845.32</p>
+          </div>
+          <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <h3 class="text-sm font-medium text-gray-400 mb-1">Long-term Gains</h3>
+            <p class="text-xl font-bold">$1,369.54</p>
+          </div>
+          <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <h3 class="text-sm font-medium text-gray-400 mb-1">Estimated Tax</h3>
+            <p class="text-xl font-bold text-red-500">$642.97</p>
+          </div>
+        </div>
+        <p class="text-sm text-gray-400 mb-4">
+          Note: This is only an estimate. Please consult with a tax professional for accurate tax advice.
+        </p>
+        <div class="text-right">
+          <a href="/tax-details" class="text-teal-400 hover:text-teal-300 text-sm inline-flex items-center gap-1">
+            View detailed breakdown
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Portfolio Recommendations -->
+      <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg mb-8">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">Smart Recommendations</h2>
+          <button class="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg" title="Refresh">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-sm font-bold">!</div>
+              <h3 class="font-medium">Overexposure Alert</h3>
+            </div>
+            <p class="text-sm text-gray-300 mb-3">Your Bitcoin allocation is over 50% of your portfolio. Consider diversifying to reduce risk.</p>
+            <button class="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm">View Rebalancing Options</button>
+          </div>
+          <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold">+</div>
+              <h3 class="font-medium">Buying Opportunity</h3>
+            </div>
+            <p class="text-sm text-gray-300 mb-3">Cardano (ADA) is down 6.5% from your average buy price. Consider averaging down on your position.</p>
+            <button class="w-full py-2 bg-teal-600 hover:bg-teal-700 rounded text-sm">Buy ADA</button>
+          </div>
+          <div class="bg-gray-900 rounded-lg p-4 border border-gray-700">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-sm font-bold">$</div>
+              <h3 class="font-medium">Tax Optimization</h3>
+            </div>
+            <p class="text-sm text-gray-300 mb-3">You could harvest tax losses by selling ADA now. This would offset $50.00 of your capital gains.</p>
+            <button class="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm">View Tax Strategy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sidebar Toggle Script -->
+  <script>
+    const sidebar = document.getElementById("sidebar");
+    const hideBtn = document.getElementById("hideSidebarBtn");
+    const showBtn = document.getElementById("showSidebarBtn");
+    const main = document.getElementById("mainContent");
+
+    // Save sidebar state in localStorage
+    const saveSidebarState = (isOpen) => {
+      localStorage.setItem('sidebarOpen', isOpen ? 'true' : 'false');
+    };
+
+    // Function to close sidebar
+    const closeSidebar = () => {
+      sidebar.classList.add("-translate-x-full");
+      main.classList.remove("ml-64");
+      showBtn.classList.remove("hidden");
+      saveSidebarState(false);
+    };
+
+    // Function to open sidebar
+    const openSidebar = () => {
+      sidebar.classList.remove("-translate-x-full");
+      main.classList.add("ml-64");
+      showBtn.classList.add("hidden");
+      saveSidebarState(true);
+    };
+
+    // Add event listeners
+    hideBtn.addEventListener("click", closeSidebar);
+    showBtn.addEventListener("click", openSidebar);
+
+    // Keyboard shortcut for toggle (Alt+S)
+    document.addEventListener('keydown', function(e) {
+      if (e.altKey && e.key === 's') {
+        if (sidebar.classList.contains('-translate-x-full')) {
+          openSidebar();
+        } else {
+          closeSidebar();
+        }
+        e.preventDefault();
+      }
+    });
+
+    // Check saved state on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedState = localStorage.getItem('sidebarOpen');
+      if (savedState === 'false') {
+        closeSidebar();
+      }
+    });
+  </script>
+
+  <!-- Portfolio Form Toggle Script -->
+  <script>
+    // Form animation setup
+    const addAssetBtn = document.getElementById("addAssetBtn");
+    const assetForm = document.getElementById("assetForm");
+    const cancelAddAsset = document.getElementById("cancelAddAsset");
+
+    // Initially hide the form with the same animation style from history.html
+    assetForm.style.maxHeight = '0px';
+    assetForm.style.overflow = 'hidden';
+    assetForm.style.padding = '0';
+    assetForm.style.margin = '0';
+    assetForm.style.opacity = '0';
+    assetForm.style.transition = 'all 0.5s ease-in-out';
+
+    const showForm = () => {
+      assetForm.style.maxHeight = '3000px'; // A large value to allow expansion
+      assetForm.style.overflow = 'visible';
+      assetForm.style.padding = '1.5rem';
+      assetForm.style.marginBottom = '2.5rem';
+      assetForm.style.opacity = '1';
+
+      // Change button text
+      addAssetBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Hide Form
+      `;
+
+      // Scroll to form
+      assetForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const hideForm = () => {
+      assetForm.style.maxHeight = '0px';
+      assetForm.style.overflow = 'hidden';
+      assetForm.style.padding = '0';
+      assetForm.style.margin = '0';
+      assetForm.style.opacity = '0';
+
+      // Change button text back
+      addAssetBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Add Asset
+      `;
+    };
+
+    addAssetBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (assetForm.style.maxHeight === '0px') {
+        showForm();
+      } else {
+        hideForm();
+      }
+    });
+
+    cancelAddAsset.addEventListener("click", () => {
+      hideForm();
+    });
+
+    // Keyboard shortcut (Alt+J) for toggling form just like in history.html
+    document.addEventListener('keydown', function(e) {
+      if (e.altKey && e.key === 'j') {
+        if (assetForm.style.maxHeight === '0px') {
+          showForm();
+        } else {
+          hideForm();
+        }
+        e.preventDefault();
+      }
+    });
+
+    // Portfolio Options toggle
+    const portfolioOptionsBtn = document.getElementById("portfolioOptionsBtn");
+    const portfolioOptions = document.getElementById("portfolioOptions");
+
+    portfolioOptionsBtn.addEventListener("click", () => {
+      portfolioOptions.classList.toggle("hidden");
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!portfolioOptionsBtn.contains(e.target) && !portfolioOptions.contains(e.target)) {
+        portfolioOptions.classList.add("hidden");
+      }
+    });
+  </script>
+
+  <!-- Charts -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Get chart data from Flask
+  const chartData = {{ chart_data|safe }};
+
+  // Get the canvas context
+  const ctx = document.getElementById('performanceChart').getContext('2d');
+
+  // Set initial period to 1M (matches the button with teal background)
+  let currentPeriod = '1M';
+
+  // Create chart
+  const performanceChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: 'Portfolio Value',
+          data: chartData[currentPeriod].map(point => ({
+            x: point.x,
+            y: point.total_value
+          })),
+          borderColor: '#2DD4BF', // teal-400
+          backgroundColor: 'rgba(45, 212, 191, 0.1)',
+          borderWidth: 2,
+          pointRadius: 1,
+          pointHoverRadius: 5,
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Total Investment',
+          data: chartData[currentPeriod].map(point => ({
+            x: point.x,
+            y: point.total_investment
+          })),
+          borderColor: '#6B7280', // gray-500
+          backgroundColor: 'rgba(107, 114, 128, 0.1)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          borderDash: [5, 5],
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const pointIndex = context.dataIndex;
+              const datasetLabel = context.dataset.label;
+              const value = context.parsed.y;
+
+              if (datasetLabel === 'Portfolio Value') {
+                const profitLoss = chartData[currentPeriod][pointIndex].profit_loss;
+                const profitLossPercentage = chartData[currentPeriod][pointIndex].profit_loss_percentage;
+                const sign = profitLoss >= 0 ? '+' : '';
+
+                return [
+                  `${datasetLabel}: $${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                  `P/L: ${sign}$${profitLoss.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${sign}${profitLossPercentage.toFixed(2)}%)`
+                ];
+              }
+
+              return `${datasetLabel}: $${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            },
+            title: function(context) {
+              // Format the date/time
+              const date = new Date(context[0].parsed.x);
+              return date.toLocaleString();
+            }
+          }
+        },
+        legend: {
+          labels: {
+            color: '#D1D5DB', // gray-300
+            font: {
+              family: 'system-ui, sans-serif'
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: getTimeUnit(currentPeriod)
+          },
+          grid: {
+            color: 'rgba(75, 85, 99, 0.3)' // gray-600 with transparency
+          },
+          ticks: {
+            color: '#9CA3AF' // gray-400
+          }
+        },
+        y: {
+          beginAtZero: false,
+          grid: {
+            color: 'rgba(75, 85, 99, 0.3)' // gray-600 with transparency
+          },
+          ticks: {
+            color: '#9CA3AF', // gray-400
+            callback: function(value) {
+              return '$' + value.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Helper function to determine time unit based on period
+  function getTimeUnit(period) {
+    switch(period) {
+      case '1D': return 'hour';
+      case '1W': return 'day';
+      case '1M': return 'day';
+      case '3M': return 'week';
+      case '1Y': return 'month';
+      case 'All': return 'month';
+      default: return 'day';
+    }
+  }
+
+  // Update chart data when period buttons are clicked
+  document.querySelectorAll('.period-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      // Update active button styling
+      document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.classList.remove('bg-teal-600', 'hover:bg-teal-700', 'active');
+        btn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+      });
+      this.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+      this.classList.add('bg-teal-600', 'hover:bg-teal-700', 'active');
+
+      // Get selected period
+      currentPeriod = this.getAttribute('data-period');
+
+      // Update chart data
+      performanceChart.data.datasets[0].data = chartData[currentPeriod].map(point => ({
+        x: point.x,
+        y: point.total_value
+      }));
+
+      performanceChart.data.datasets[1].data = chartData[currentPeriod].map(point => ({
+        x: point.x,
+        y: point.total_investment
+      }));
+
+      // Update time unit
+      performanceChart.options.scales.x.time.unit = getTimeUnit(currentPeriod);
+
+      // Update chart
+      performanceChart.update();
+    });
+  });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const viewAllBtn = document.getElementById('viewAllBtn');
+  const showMoreBtn = document.getElementById('showMoreBtn');
+  const extraRows = document.querySelectorAll('.transaction-extra-row');
+  const showMoreLess = document.getElementById('showMoreLess');
+
+  // Only show the "Show more" button if there are more than 5 transactions
+  if (extraRows.length === 0) {
+    showMoreLess.classList.add('hidden');
+  }
+
+  // Function to toggle hidden rows
+  showMoreBtn.addEventListener('click', function() {
+    extraRows.forEach(row => {
+      row.classList.toggle('hidden');
+    });
+
+    if (showMoreBtn.textContent.includes('Show more')) {
+      showMoreBtn.textContent = 'Show less';
+    } else {
+      showMoreBtn.textContent = 'Show more';
+
+      // Scroll back to the top of the table when showing less
+      document.querySelector('#transactionTable').scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+
+  // Function to create full-screen version of the table
+  viewAllBtn.addEventListener('click', function() {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    document.body.appendChild(overlay);
+
+    // Create expanded container
+    const expandedTable = document.createElement('div');
+    expandedTable.className = 'expanded-table';
+
+    // Create header with close button
+    const header = document.createElement('div');
+    header.className = 'expanded-header';
+
+    const title = document.createElement('h2');
+    title.className = 'text-xl font-semibold';
+    title.textContent = 'All Transactions';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'text-gray-400 hover:text-white focus:outline-none';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.fontSize = '24px';
+
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    // Create container for the table
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'expanded-container';
+
+    // Clone the table
+    const originalTable = document.querySelector('#transactionTable').closest('table');
+    const clonedTable = originalTable.cloneNode(true);
+
+    // Make sure all rows are visible in the cloned table
+    const clonedHiddenRows = clonedTable.querySelectorAll('.transaction-extra-row');
+    clonedHiddenRows.forEach(row => {
+      row.classList.remove('hidden');
+    });
+
+    // Add table to container
+    tableContainer.appendChild(clonedTable);
+
+    // Add all elements to the expanded table
+    expandedTable.appendChild(header);
+    expandedTable.appendChild(tableContainer);
+
+    // Add expanded table to body
+    document.body.appendChild(expandedTable);
+
+    // Add event listener to close button
+    closeBtn.addEventListener('click', function() {
+      document.body.removeChild(overlay);
+      document.body.removeChild(expandedTable);
+    });
+
+    // Add event listener to overlay for closing
+    overlay.addEventListener('click', function() {
+      document.body.removeChild(overlay);
+      document.body.removeChild(expandedTable);
+    });
+  });
+});
+</script>
+// Risk Analysis Help Button
+<script>
+  // Tooltip functionality
+  const infoButton = document.querySelector('.risk-analysis-info-button');
+  const tooltip = document.getElementById('riskTooltip');
+
+  infoButton.addEventListener('mouseenter', function() {
+      tooltip.classList.remove('hidden');
+  });
+
+  infoButton.addEventListener('mouseleave', function() {
+      tooltip.classList.add('hidden');
+  });
+
+  // For mobile: toggle on click
+  infoButton.addEventListener('click', function(e) {
+      e.stopPropagation();
+      tooltip.classList.toggle('hidden');
+  });
+
+  // Close tooltip when clicking elsewhere
+  document.addEventListener('click', function() {
+      if (!tooltip.classList.contains('hidden')) {
+          tooltip.classList.add('hidden');
+      }
+  });
+</script>
+</body>
+</html>

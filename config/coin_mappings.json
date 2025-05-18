@@ -1,0 +1,47 @@
+{
+  "BTC": {
+    "name": "bitcoin",
+    "color": "#F7931A",
+    "icon": "/static/coins_icon/btc.png"
+  },
+  "ETH": {
+    "name": "ethereum",
+    "color": "#627EEA",
+    "icon": "/static/coins_icon/eth.png"
+  },
+  "ARB": {
+    "name": "arbitrum",
+    "color": "#92a4e8",
+    "icon": "/static/coins_icon/arb.png"
+  },
+  "FET": {
+    "name": "fet",
+    "color": "#2b2b2e",
+    "icon": "/static/coins_icon/fet.png"
+  },
+  "SUI": {
+    "name": "sui",
+    "color": "#6aa2cc",
+    "icon": "/static/coins_icon/sui.png"
+  },
+  "ENA": {
+    "name": "ethena",
+    "color": "#2b3238",
+    "icon": "/static/coins_icon/ena.png"
+  },
+  "PEPE": {
+    "name": "pepe",
+    "color": "#3c8037",
+    "icon": "/static/coins_icon/pepe.png"
+  },
+  "SEI": {
+    "name": "sei",
+    "color": "#701f31",
+    "icon": "/static/coins_icon/sei.png"
+  },
+  "LDO": {
+    "name": "lido dao",
+    "color": "#4a8d91",
+    "icon": "/static/coins_icon/ldo.png"
+  }
+}

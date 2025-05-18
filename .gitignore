@@ -1,0 +1,87 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Flask & Python environment
+instance/
+.env
+.venv/
+venv/
+ENV/
+env/
+*.env
+*.env.*
+
+# Pip dependency files
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Logs
+*.log
+
+# SQLite database
+*.sqlite3
+*.db
+
+# Flask specific
+*.pid
+*.db
+*.bak
+*.swp
+
+# Frontend (if using npm or other tools)
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# MacOS
+.DS_Store
+
+# HTML/CSS/JS - not ignored unless built/generated
+# Add build/ or dist/ if using a bundler like webpack
+
+# Config files
+config.json
+portfolio_history.json
+transactions.json
+portfolio.json
