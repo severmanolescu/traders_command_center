@@ -1,7 +1,6 @@
 import json
 from datetime import datetime
 
-from sdk.portfolio_manager import load_transactions, calculate_metrics_from_portfolio_history
+from sdk.variables_fetcher import save_transaction
 
-
-print(calculate_metrics_from_portfolio_history())
+save_transaction('ETH', 'BUY', 123, 123)

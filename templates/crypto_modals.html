@@ -1,0 +1,89 @@
+<!-- Buy Modal -->
+<div id="buyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg max-w-md w-full">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Buy More</h3>
+      <button class="close-modal text-gray-400 hover:text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <form id="buyForm" action="{{ url_for('buy_asset') }}" method="post">
+      <input type="hidden" id="buy_asset_id" name="asset_id">
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-400 mb-1">Asset</label>
+        <div class="font-medium text-lg" id="buy_symbol">--</div>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-400 mb-1">Current Price</label>
+        <div class="font-medium text-lg" id="buy_current_price">$0.00</div>
+      </div>
+
+      <div class="mb-4">
+        <label for="buy_quantity" class="block text-sm font-medium text-gray-400 mb-1">Quantity</label>
+        <input id="buy_quantity" name="quantity" type="number" step="any" min="0.000001" required
+               class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-400 mb-1">Total Value</label>
+        <div class="font-medium text-lg" id="buy_total_value">$0.00</div>
+      </div>
+
+      <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg">
+        Confirm Purchase
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Sell Modal -->
+<div id="sellModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg max-w-md w-full">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Sell Asset</h3>
+      <button class="close-modal text-gray-400 hover:text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <form id="sellForm" action="{{ url_for('sell_asset') }}" method="post">
+      <input type="hidden" id="sell_asset_id" name="asset_id">
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-400 mb-1">Asset</label>
+        <div class="font-medium text-lg" id="sell_symbol">--</div>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-400 mb-1">Current Price</label>
+        <div class="font-medium text-lg" id="sell_current_price">$0.00</div>
+      </div>
+
+      <div class="mb-4">
+        <label for="sell_quantity" class="block text-sm font-medium text-gray-400 mb-1">
+          Quantity (Max: <span id="sell_max_quantity">0</span>)
+        </label>
+        <input id="sell_quantity" name="quantity" type="number" step="any" min="0.000001" required
+               class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-400 mb-1">Total Value</label>
+        <div class="font-medium text-lg" id="sell_total_value">$0.00</div>
+      </div>
+
+      <button type="submit" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg">
+        Confirm Sale
+      </button>
+    </form>
+  </div>
+</div>

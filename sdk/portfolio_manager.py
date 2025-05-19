@@ -1,15 +1,15 @@
 import json
+import logging
+
 import pandas as pd
 import numpy as np
 
-from sdk.logger import setup_logger
 from sdk.api_client import get_crypto_data_by_symbols
-from sdk.variables_fetcher import load_json_file
+from sdk.variables_fetcher import load_json_file, get_atl_ath
 
 from datetime import datetime, timedelta
 
-logger = setup_logger("portfolio_manager.log")
-
+logger = logging.getLogger(__name__)
 
 def get_holdings():
     """
@@ -74,7 +74,6 @@ def get_holdings():
 
                 holdings.append(holding)
 
-
     # Load coin mappings
     coin_mappings = load_json_file("./config/coin_mappings.json")
 
@@ -133,7 +132,7 @@ def calculate_changes_from_history():
     if isinstance(history, dict) and 'history' in history:
         history = history['history']
     elif not isinstance(history, list):
-        print("Invalid history format")
+        logger.error("Invalid history format")
         return default_changes()
 
     # Ensure history has entries
@@ -146,7 +145,7 @@ def calculate_changes_from_history():
             try:
                 entry['parsed_datetime'] = datetime.strptime(entry['datetime'], '%Y-%m-%d %H:%M:%S')
             except ValueError:
-                print(f"Invalid datetime format: {entry['datetime']}")
+                logger.error(f"Invalid datetime format: {entry['datetime']}")
                 entry['parsed_datetime'] = datetime.now()  # Default to now
 
     # Sort by datetime (newest first)
@@ -509,3 +508,90 @@ def determine_risk_level(value, metric_type):
             return {'level': 'Medium', 'color': 'yellow', 'width': '50%'}
         else:
             return {'level': 'Good', 'color': 'green', 'width': '68%'}
+
+def calculate_portfolio_data():
+    """
+    Calculate the portfolio data.
+
+    Returns:
+        dict: with all the portfolio data.
+    """
+    holdings, current_value, initial_investment = get_holdings()
+
+    profit_loss = calculate_profit_loss(current_value, initial_investment)
+
+    all_time_low, all_time_high = get_atl_ath()
+
+    history_changes = calculate_changes_from_history()
+
+    diversity_score = calculate_diversity_score(holdings)
+
+    risk_string, risk_level = calculate_risk_level(holdings)
+
+    portfolio_volatility = calculate_portfolio_volatility(holdings)
+
+    transactions = load_transactions()
+
+    transactions_performance, chart_data_json = get_portfolio_performance()
+
+    max_drawdown, sharpe_ratio = calculate_metrics_from_portfolio_history()
+
+    if holdings:
+        weighted_change = sum(holding['day_change'] * holding['percentage'] / 100 for holding in holdings)
+    else:
+        weighted_change = 0
+
+    weighted_change = round(weighted_change, 2)
+
+    is_positive_total_value = True if weighted_change > 0 else False
+    is_positive_all_time = True if profit_loss['amount'] > 0 else False
+
+    risk_levels = {
+        'volatility': determine_risk_level(portfolio_volatility, 'volatility'),
+        'diversity': determine_risk_level(diversity_score, 'diversity'),
+        'max_drawdown': determine_risk_level(max_drawdown, 'max_drawdown'),
+        'sharpe_ratio': determine_risk_level(sharpe_ratio, 'sharpe_ratio')
+    }
+    return {
+        # Holdings table
+        'holdings': holdings,
+
+        # Portfolio Value Card
+        'current_value': f"${round(current_value, 2):,.2f}",
+        'is_positive_total_value': is_positive_total_value,
+        'weighted_change': weighted_change,
+        'all_time_low': f"${all_time_low:,.2f}",
+        'all_time_high': f"${all_time_high:,.2f}",
+
+        # Profit & Loss Card
+        'all_time_profit': f"${profit_loss['amount']:,.2f}",
+        'all_time_profit_percentage': profit_loss['percentage'],
+        'is_positive_all_time': is_positive_all_time,
+        'profit_24h': history_changes['24h']['amount'],
+        'profit_percentage_24': history_changes['24h']['percentage'],
+        'is_positive_24h': history_changes['24h']['is_positive'],
+        'profit_7d': history_changes['7d']['amount'],
+        'profit_percentage_7d': history_changes['7d']['percentage'],
+        'is_positive_7d': history_changes['7d']['is_positive'],
+        'profit_30d': history_changes['30d']['amount'],
+        'profit_percentage_30d': history_changes['30d']['percentage'],
+        'is_positive_30d': history_changes['30d']['is_positive'],
+
+        # Allocation & Metrics
+        'assets_count': len(holdings),
+        'diversity_score': diversity_score,
+        'risk_string': risk_string,
+        'risk_level': risk_level,
+        'portfolio_volatility': portfolio_volatility,
+
+        # Recent Transactions
+        'transactions': transactions,
+
+        # Portfolio Performance
+        'chart_data': chart_data_json,
+
+        # Risk Analysis
+        'risk_levels': risk_levels,
+        'max_drawdown': max_drawdown,
+        'sharpe_rati': sharpe_ratio,
+    }

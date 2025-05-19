@@ -4,89 +4,15 @@
   <meta charset="UTF-8">
   <title>Crypto Portfolio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-  <style>
-    /* Custom styles for drag and drop */
-    .card-dragging {
-      transform: scale(1.02);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-      opacity: 0.8;
-      z-index: 1000;
-      border: 2px solid rgb(45, 212, 191);
-    }
-    .drag-over {
-      border: 2px dashed rgb(45, 212, 191) !important;
-      background-color: rgba(45, 212, 191, 0.1);
-    }
 
-    /* News ticker animation */
-    @keyframes ticker {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-    .ticker-animation {
-      display: inline-block;
-      padding-right: 2rem;
-      animation: ticker 15s linear infinite;
-    }
-    
-    /* Custom sparkline animation */
-    @keyframes sparkFade {
-      0% { opacity: 0; }
-      50% { opacity: 1; }
-      100% { opacity: 0; }
-    }
-    .spark-dot {
-      animation: sparkFade 2s infinite;
-    }
-      .expanded-table {
-    position: fixed;
-    top: 5%;
-    left: 5%;
-    right: 5%;
-    bottom: 5%;
-    width: 90%;
-    height: 90%;
-    z-index: 1000;
-    overflow: auto;
-    background-color: rgb(31, 41, 55); /* bg-gray-800 */
-    border-radius: 0.75rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-  }
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/portfolio_page/styles.css') }}">
 
-  .expanded-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-
-  .expanded-container {
-    overflow: auto;
-    flex-grow: 1;
-  }
-
-  .overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
-    z-index: 999;
-  }
-
-  .hidden {
-    display: none;
-  }
-  </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
 
@@ -237,7 +163,7 @@
         <div class="bg-gray-800 rounded-lg shadow p-4 border border-gray-700">
           <h2 class="text-base font-semibold mb-3">Portfolio Value</h2>
           <div class="flex items-center gap-2">
-            <p class="text-2xl font-bold">{{portfolio_value}}</p>
+            <p class="text-2xl font-bold">{{current_value}}</p>
             <span class="{{ 'text-green-500' if is_positive else 'text-red-500' }} text-sm font-medium flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1">
                 {% if is_positive %}
@@ -511,10 +437,19 @@
                 </td>
                 <td class="py-4">
                   <div class="flex gap-1">
-                    <button class="p-1.5 bg-teal-600 hover:bg-teal-700 rounded-lg" title="Buy More">
+                    <button class="p-1.5 bg-teal-600 hover:bg-teal-700 rounded-lg buy-btn"
+                            title="Buy More"
+                            data-asset-id="{{ item.id }}"
+                            data-symbol="{{ item.symbol }}"
+                            data-price="{{ item.current_price }}">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     </button>
-                    <button class="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg" title="Sell">
+                    <button class="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg sell-btn"
+                            title="Sell"
+                            data-asset-id="{{ item.id }}"
+                            data-symbol="{{ item.symbol }}"
+                            data-price="{{ item.current_price }}"
+                            data-holdings="{{ item.holdings }}">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     </button>
                     <button class="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg" title="More Options">
@@ -529,6 +464,104 @@
         <!-- Show More / Pagination -->
         <div class="flex justify-between items-center mt-5"></div>
       </div>
+
+        <div id="buyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg max-w-md w-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Buy More</h3>
+                    <button class="close-modal text-gray-400 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="buyForm" action="{{ url_for('buy_asset') }}" method="post">
+                    <!-- Hidden fields for sending actual numeric data to Flask -->
+                    <input type="hidden" id="buy_asset_name" name="asset_name">
+                    <input type="hidden" id="buy_price_numeric" name="price">
+                    <input type="hidden" id="buy_quantity_numeric" name="quantity">
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Asset</label>
+                        <div class="font-medium text-lg" id="buy_symbol">--</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Current Price</label>
+                        <input id="buy_current_price" type="text"
+                               class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                               required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="buy_quantity" class="block text-sm font-medium text-gray-400 mb-1">Quantity</label>
+                        <input id="buy_quantity" type="text"
+                               class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                               required>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Total Value</label>
+                        <div class="font-medium text-lg" id="buy_total_value">$0.00</div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg">
+                        Confirm Purchase
+                    </button>
+                </form>
+            </div>
+        </div>
+        <!-- Sell Modal -->
+        <div id="sellModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg max-w-md w-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Sell Asset</h3>
+                    <button class="close-modal text-gray-400 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="sellForm" action="{{ url_for('sell_asset') }}" method="post">
+                    <!-- Hidden fields for sending actual numeric data to Flask -->
+                    <input type="hidden" id="sell_asset_id" name="asset_name">
+                    <input type="hidden" id="sell_price_numeric" name="price">
+                    <input type="hidden" id="sell_quantity_numeric" name="quantity">
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Asset</label>
+                        <div class="font-medium text-lg" id="sell_symbol">--</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Current Price</label>
+                        <div class="font-medium text-lg" id="sell_current_price">$0.00</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="sell_quantity" class="block text-sm font-medium text-gray-400 mb-1">
+                            Quantity (Max: <span id="sell_max_quantity">0</span>)
+                        </label>
+                        <input id="sell_quantity" type="text"
+                               class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                               required>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Total Value</label>
+                        <div class="font-medium text-lg" id="sell_total_value">$0.00</div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg">
+                        Confirm Sale
+                    </button>
+                </form>
+            </div>
+        </div>
 
       <!-- Transaction History -->
       <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg overflow-x-auto mb-8">
@@ -821,434 +854,15 @@
     </div>
   </main>
 
-  <!-- Sidebar Toggle Script -->
-  <script>
-    const sidebar = document.getElementById("sidebar");
-    const hideBtn = document.getElementById("hideSidebarBtn");
-    const showBtn = document.getElementById("showSidebarBtn");
-    const main = document.getElementById("mainContent");
-
-    // Save sidebar state in localStorage
-    const saveSidebarState = (isOpen) => {
-      localStorage.setItem('sidebarOpen', isOpen ? 'true' : 'false');
-    };
-
-    // Function to close sidebar
-    const closeSidebar = () => {
-      sidebar.classList.add("-translate-x-full");
-      main.classList.remove("ml-64");
-      showBtn.classList.remove("hidden");
-      saveSidebarState(false);
-    };
-
-    // Function to open sidebar
-    const openSidebar = () => {
-      sidebar.classList.remove("-translate-x-full");
-      main.classList.add("ml-64");
-      showBtn.classList.add("hidden");
-      saveSidebarState(true);
-    };
-
-    // Add event listeners
-    hideBtn.addEventListener("click", closeSidebar);
-    showBtn.addEventListener("click", openSidebar);
-
-    // Keyboard shortcut for toggle (Alt+S)
-    document.addEventListener('keydown', function(e) {
-      if (e.altKey && e.key === 's') {
-        if (sidebar.classList.contains('-translate-x-full')) {
-          openSidebar();
-        } else {
-          closeSidebar();
-        }
-        e.preventDefault();
-      }
-    });
-
-    // Check saved state on page load
-    document.addEventListener('DOMContentLoaded', () => {
-      const savedState = localStorage.getItem('sidebarOpen');
-      if (savedState === 'false') {
-        closeSidebar();
-      }
-    });
-  </script>
-
-  <!-- Portfolio Form Toggle Script -->
-  <script>
-    // Form animation setup
-    const addAssetBtn = document.getElementById("addAssetBtn");
-    const assetForm = document.getElementById("assetForm");
-    const cancelAddAsset = document.getElementById("cancelAddAsset");
-
-    // Initially hide the form with the same animation style from history.html
-    assetForm.style.maxHeight = '0px';
-    assetForm.style.overflow = 'hidden';
-    assetForm.style.padding = '0';
-    assetForm.style.margin = '0';
-    assetForm.style.opacity = '0';
-    assetForm.style.transition = 'all 0.5s ease-in-out';
-
-    const showForm = () => {
-      assetForm.style.maxHeight = '3000px'; // A large value to allow expansion
-      assetForm.style.overflow = 'visible';
-      assetForm.style.padding = '1.5rem';
-      assetForm.style.marginBottom = '2.5rem';
-      assetForm.style.opacity = '1';
-
-      // Change button text
-      addAssetBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        Hide Form
-      `;
-
-      // Scroll to form
-      assetForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-
-    const hideForm = () => {
-      assetForm.style.maxHeight = '0px';
-      assetForm.style.overflow = 'hidden';
-      assetForm.style.padding = '0';
-      assetForm.style.margin = '0';
-      assetForm.style.opacity = '0';
-
-      // Change button text back
-      addAssetBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        Add Asset
-      `;
-    };
-
-    addAssetBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (assetForm.style.maxHeight === '0px') {
-        showForm();
-      } else {
-        hideForm();
-      }
-    });
-
-    cancelAddAsset.addEventListener("click", () => {
-      hideForm();
-    });
-
-    // Keyboard shortcut (Alt+J) for toggling form just like in history.html
-    document.addEventListener('keydown', function(e) {
-      if (e.altKey && e.key === 'j') {
-        if (assetForm.style.maxHeight === '0px') {
-          showForm();
-        } else {
-          hideForm();
-        }
-        e.preventDefault();
-      }
-    });
-
-    // Portfolio Options toggle
-    const portfolioOptionsBtn = document.getElementById("portfolioOptionsBtn");
-    const portfolioOptions = document.getElementById("portfolioOptions");
-
-    portfolioOptionsBtn.addEventListener("click", () => {
-      portfolioOptions.classList.toggle("hidden");
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener("click", (e) => {
-      if (!portfolioOptionsBtn.contains(e.target) && !portfolioOptions.contains(e.target)) {
-        portfolioOptions.classList.add("hidden");
-      }
-    });
-  </script>
-
-  <!-- Charts -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Get chart data from Flask
-  const chartData = {{ chart_data|safe }};
-
-  // Get the canvas context
-  const ctx = document.getElementById('performanceChart').getContext('2d');
-
-  // Set initial period to 1M (matches the button with teal background)
-  let currentPeriod = '1M';
-
-  // Create chart
-  const performanceChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      datasets: [
-        {
-          label: 'Portfolio Value',
-          data: chartData[currentPeriod].map(point => ({
-            x: point.x,
-            y: point.total_value
-          })),
-          borderColor: '#2DD4BF', // teal-400
-          backgroundColor: 'rgba(45, 212, 191, 0.1)',
-          borderWidth: 2,
-          pointRadius: 1,
-          pointHoverRadius: 5,
-          fill: true,
-          tension: 0.4
-        },
-        {
-          label: 'Total Investment',
-          data: chartData[currentPeriod].map(point => ({
-            x: point.x,
-            y: point.total_investment
-          })),
-          borderColor: '#6B7280', // gray-500
-          backgroundColor: 'rgba(107, 114, 128, 0.1)',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          borderDash: [5, 5],
-          fill: false
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              const pointIndex = context.dataIndex;
-              const datasetLabel = context.dataset.label;
-              const value = context.parsed.y;
-
-              if (datasetLabel === 'Portfolio Value') {
-                const profitLoss = chartData[currentPeriod][pointIndex].profit_loss;
-                const profitLossPercentage = chartData[currentPeriod][pointIndex].profit_loss_percentage;
-                const sign = profitLoss >= 0 ? '+' : '';
-
-                return [
-                  `${datasetLabel}: $${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-                  `P/L: ${sign}$${profitLoss.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${sign}${profitLossPercentage.toFixed(2)}%)`
-                ];
-              }
-
-              return `${datasetLabel}: $${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            },
-            title: function(context) {
-              // Format the date/time
-              const date = new Date(context[0].parsed.x);
-              return date.toLocaleString();
-            }
-          }
-        },
-        legend: {
-          labels: {
-            color: '#D1D5DB', // gray-300
-            font: {
-              family: 'system-ui, sans-serif'
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          type: 'time',
-          time: {
-            unit: getTimeUnit(currentPeriod)
-          },
-          grid: {
-            color: 'rgba(75, 85, 99, 0.3)' // gray-600 with transparency
-          },
-          ticks: {
-            color: '#9CA3AF' // gray-400
-          }
-        },
-        y: {
-          beginAtZero: false,
-          grid: {
-            color: 'rgba(75, 85, 99, 0.3)' // gray-600 with transparency
-          },
-          ticks: {
-            color: '#9CA3AF', // gray-400
-            callback: function(value) {
-              return '$' + value.toLocaleString();
-            }
-          }
-        }
-      }
-    }
-  });
-
-  // Helper function to determine time unit based on period
-  function getTimeUnit(period) {
-    switch(period) {
-      case '1D': return 'hour';
-      case '1W': return 'day';
-      case '1M': return 'day';
-      case '3M': return 'week';
-      case '1Y': return 'month';
-      case 'All': return 'month';
-      default: return 'day';
-    }
-  }
-
-  // Update chart data when period buttons are clicked
-  document.querySelectorAll('.period-btn').forEach(button => {
-    button.addEventListener('click', function() {
-      // Update active button styling
-      document.querySelectorAll('.period-btn').forEach(btn => {
-        btn.classList.remove('bg-teal-600', 'hover:bg-teal-700', 'active');
-        btn.classList.add('bg-gray-700', 'hover:bg-gray-600');
-      });
-      this.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-      this.classList.add('bg-teal-600', 'hover:bg-teal-700', 'active');
-
-      // Get selected period
-      currentPeriod = this.getAttribute('data-period');
-
-      // Update chart data
-      performanceChart.data.datasets[0].data = chartData[currentPeriod].map(point => ({
-        x: point.x,
-        y: point.total_value
-      }));
-
-      performanceChart.data.datasets[1].data = chartData[currentPeriod].map(point => ({
-        x: point.x,
-        y: point.total_investment
-      }));
-
-      // Update time unit
-      performanceChart.options.scales.x.time.unit = getTimeUnit(currentPeriod);
-
-      // Update chart
-      performanceChart.update();
-    });
-  });
-});
+  window.chartData = {{chart_data|safe}}
 </script>
 
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const viewAllBtn = document.getElementById('viewAllBtn');
-  const showMoreBtn = document.getElementById('showMoreBtn');
-  const extraRows = document.querySelectorAll('.transaction-extra-row');
-  const showMoreLess = document.getElementById('showMoreLess');
-
-  // Only show the "Show more" button if there are more than 5 transactions
-  if (extraRows.length === 0) {
-    showMoreLess.classList.add('hidden');
-  }
-
-  // Function to toggle hidden rows
-  showMoreBtn.addEventListener('click', function() {
-    extraRows.forEach(row => {
-      row.classList.toggle('hidden');
-    });
-
-    if (showMoreBtn.textContent.includes('Show more')) {
-      showMoreBtn.textContent = 'Show less';
-    } else {
-      showMoreBtn.textContent = 'Show more';
-
-      // Scroll back to the top of the table when showing less
-      document.querySelector('#transactionTable').scrollIntoView({ behavior: 'smooth' });
-    }
-  });
-
-  // Function to create full-screen version of the table
-  viewAllBtn.addEventListener('click', function() {
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'overlay';
-    document.body.appendChild(overlay);
-
-    // Create expanded container
-    const expandedTable = document.createElement('div');
-    expandedTable.className = 'expanded-table';
-
-    // Create header with close button
-    const header = document.createElement('div');
-    header.className = 'expanded-header';
-
-    const title = document.createElement('h2');
-    title.className = 'text-xl font-semibold';
-    title.textContent = 'All Transactions';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'text-gray-400 hover:text-white focus:outline-none';
-    closeBtn.innerHTML = '&times;';
-    closeBtn.style.fontSize = '24px';
-
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-
-    // Create container for the table
-    const tableContainer = document.createElement('div');
-    tableContainer.className = 'expanded-container';
-
-    // Clone the table
-    const originalTable = document.querySelector('#transactionTable').closest('table');
-    const clonedTable = originalTable.cloneNode(true);
-
-    // Make sure all rows are visible in the cloned table
-    const clonedHiddenRows = clonedTable.querySelectorAll('.transaction-extra-row');
-    clonedHiddenRows.forEach(row => {
-      row.classList.remove('hidden');
-    });
-
-    // Add table to container
-    tableContainer.appendChild(clonedTable);
-
-    // Add all elements to the expanded table
-    expandedTable.appendChild(header);
-    expandedTable.appendChild(tableContainer);
-
-    // Add expanded table to body
-    document.body.appendChild(expandedTable);
-
-    // Add event listener to close button
-    closeBtn.addEventListener('click', function() {
-      document.body.removeChild(overlay);
-      document.body.removeChild(expandedTable);
-    });
-
-    // Add event listener to overlay for closing
-    overlay.addEventListener('click', function() {
-      document.body.removeChild(overlay);
-      document.body.removeChild(expandedTable);
-    });
-  });
-});
-</script>
-// Risk Analysis Help Button
-<script>
-  // Tooltip functionality
-  const infoButton = document.querySelector('.risk-analysis-info-button');
-  const tooltip = document.getElementById('riskTooltip');
-
-  infoButton.addEventListener('mouseenter', function() {
-      tooltip.classList.remove('hidden');
-  });
-
-  infoButton.addEventListener('mouseleave', function() {
-      tooltip.classList.add('hidden');
-  });
-
-  // For mobile: toggle on click
-  infoButton.addEventListener('click', function(e) {
-      e.stopPropagation();
-      tooltip.classList.toggle('hidden');
-  });
-
-  // Close tooltip when clicking elsewhere
-  document.addEventListener('click', function() {
-      if (!tooltip.classList.contains('hidden')) {
-          tooltip.classList.add('hidden');
-      }
-  });
-</script>
+<script src="/static/js/sidebar_toggle.js"></script>
+<script src="/static/js/portfolio_page/toggle_script.js"></script>
+<script src="/static/js/portfolio_page/chart_handler.js"></script>
+<script src="/static/js/portfolio_page/recent_transactions_buttons_handler.js"></script>
+<script src="/static/js/portfolio_page/risk_analysis_help_button.js"></script>
+<script src="/static/js/portfolio_page/buy_sell_button_handler.js"></script>
 </body>
 </html>

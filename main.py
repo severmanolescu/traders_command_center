@@ -1,27 +1,23 @@
-# flask_trade_tracker/app.py
-import json
+import logging
+import sqlite3, csv
 
-from flask import Flask, request, render_template, redirect, url_for, send_file
-import sqlite3, csv, os
 from io import StringIO
+from flask import Flask, request, render_template, redirect, url_for, send_file, flash
+
 
 from sdk.portfolio_manager import(
-    get_holdings,
-    calculate_profit_loss,
-    calculate_changes_from_history,
-    calculate_diversity_score,
-    calculate_risk_level,
-    calculate_portfolio_volatility,
-    load_transactions,
-    get_portfolio_performance,
-    calculate_metrics_from_portfolio_history,
-    determine_risk_level,
+    calculate_portfolio_data,
 )
-
-from sdk.variables_fetcher import get_atl_ath
+from sdk.logger import setup_logging
+from sdk.variables_fetcher import update_buy
 
 app = Flask(__name__)
+app.secret_key = '123123123123123123'
+
 DB_FILE = 'trades.db'
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 # Initialize DB if not exists
 conn = sqlite3.connect(DB_FILE)
@@ -72,99 +68,54 @@ def history_tab():
 
 @app.route('/portfolio')
 def portfolio():
-    holdings, current_value, initial_investment = get_holdings()
-
-    profit_loss = calculate_profit_loss(current_value, initial_investment)
-
-    all_time_low, all_time_high = get_atl_ath()
-
-    history_changes = calculate_changes_from_history()
-
-    diversity_score = calculate_diversity_score(holdings)
-
-    risk_string, risk_level = calculate_risk_level(holdings)
-
-    portfolio_volatility = calculate_portfolio_volatility(holdings)
-
-    transactions = load_transactions()
-
-    transactions_performance, chart_data_json = get_portfolio_performance()
-
-    max_drawdown, sharpe_ratio = calculate_metrics_from_portfolio_history()
-
-    # Calculate overall percentage change (24h)
-    if holdings:
-        # Calculate weighted average change based on each asset's allocation percentage
-        weighted_change = sum(holding['day_change'] * holding['percentage'] / 100 for holding in holdings)
-    else:
-        weighted_change = 0
-
-    weighted_change = round(weighted_change, 2)
-
-    # Load coin mappings
-    with open("./config/coin_mappings.json", "r") as file:
-        coin_mappings = json.load(file)
-
-    # Add icon info to each holding
-    for holding in holdings:
-        symbol = holding["symbol"]
-        if symbol in coin_mappings:
-            holding["coin_info"] = coin_mappings[symbol]
-        else:
-            holding["coin_info"] = {
-                "name": symbol.lower(),
-                "color": "#F0F0F0",
-                "icon": None
-            }
-
-    is_positive_total_value = True if weighted_change > 0 else False
-    is_positive_all_time = True if profit_loss['amount'] > 0 else False
-
-    risk_levels = {
-        'volatility': determine_risk_level(portfolio_volatility, 'volatility'),
-        'diversity': determine_risk_level(diversity_score, 'diversity'),
-        'max_drawdown': determine_risk_level(max_drawdown, 'max_drawdown'),
-        'sharpe_ratio': determine_risk_level(sharpe_ratio, 'sharpe_ratio')
-    }
+    portfolio_data = calculate_portfolio_data()
 
     return render_template(
         'portfolio.html',
-        # Holdings table
-        holdings=holdings,
-        # Portfolio Value Card
-        portfolio_value=f"${current_value:,.2f}",
-        is_positive_total_value=is_positive_total_value,
-        change_percentage=weighted_change,
-        all_time_low=f"${all_time_low:,.2f}",
-        all_time_high=f"${all_time_high:,.2f}",
-        # Profit & Loss Card
-        all_time_profit=f"${profit_loss['amount']:,.2f}",
-        all_time_profit_percentage=profit_loss['percentage'],
-        is_positive_all_time=is_positive_all_time,
-        profit_24h=history_changes['24h']['amount'],
-        profit_percentage_24=history_changes['24h']['percentage'],
-        is_positive_24h=history_changes['24h']['is_positive'],
-        profit_7d=history_changes['7d']['amount'],
-        profit_percentage_7d=history_changes['7d']['percentage'],
-        is_positive_7d=history_changes['7d']['is_positive'],
-        profit_30d=history_changes['30d']['amount'],
-        profit_percentage_30d=history_changes['30d']['percentage'],
-        is_positive_30d=history_changes['30d']['is_positive'],
-        # Allocation & Metrics
-        assets_count=len(holdings),
-        diversity_score=diversity_score,
-        risk_string=risk_string,
-        risk_level=risk_level,
-        portfolio_volatility=portfolio_volatility,
-        # Recent Transactions
-        transactions=transactions,
-        # Portfolio Performance
-        chart_data=chart_data_json,
-        # Risk Analysis
-        risk_levels=risk_levels,
-        max_drawdown=max_drawdown,
-        sharpe_ratio=sharpe_ratio,
+        **portfolio_data
     )
+
+@app.route('/buy_asset', methods=['POST'])
+def buy_asset():
+    try:
+        # Get form data
+        asset_name = request.form.get('asset_name')
+        price = request.form.get('price')
+        quantity = request.form.get('quantity')
+
+        # Convert to proper decimal values for financial calculations
+        price_decimal = float(price)
+        quantity_decimal = float(quantity)
+
+        update_buy(asset_name, quantity_decimal, price_decimal)
+
+        flash('Asset purchased successfully!', 'success')
+        return redirect(url_for('portfolio'))
+    except ValueError as e:
+        # Handle invalid number formats
+        logger.error(f'Buy Asset Button invalid input: {str(e)}')
+        flash(f'Invalid input: {str(e)}', 'error')
+        return redirect(url_for('portfolio'))
+    except Exception as e:
+        # Handle other errors
+        logger.error(f'Buy Asset Button an error occurred: {str(e)}')
+        flash(f'An error occurred: {str(e)}', 'error')
+        return redirect(url_for('portfolio'))
+
+@app.route('/sell_asset', methods=['POST'])
+def sell_asset():
+    asset_name = request.form.get('asset_name')
+    price = request.form.get('price')
+    quantity = request.form.get('quantity')
+
+    logger.info(f'{asset_name}, {price}, {quantity}')
+
+    return redirect(url_for('portfolio'))
+
+# Handle sell transaction
+# Get form data from request.form
+# Process the transaction
+# Redirect back to portfolio page
 
 @app.route('/add', methods=['POST'])
 def add_trade():

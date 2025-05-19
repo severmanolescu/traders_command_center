@@ -1,8 +1,9 @@
+import logging
 import requests
-from sdk.logger import setup_logger
+
 from sdk.variables_fetcher import get_api_key
 
-logger = setup_logger("api_client.log")
+logger = logging.getLogger(__name__)
 
 def get_crypto_data_by_symbols(symbols, convert='USD'):
     """
