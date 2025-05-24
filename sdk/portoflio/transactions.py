@@ -1,9 +1,12 @@
 import csv
+import logging
 from io import StringIO
 
 from sdk.variables_fetcher import load_json_file
 
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 def load_transactions():
@@ -16,6 +19,7 @@ def load_transactions():
     transactions = load_json_file('./config/transactions.json')
 
     if len(transactions) == 0:
+        logger.error('No transactions found in the JSON file.')
         return
 
     # Convert timestamps to datetime objects for sorting
@@ -43,6 +47,7 @@ def load_transactions_by_symbol(symbol):
     transactions = load_transactions()
 
     if transactions is None:
+        logger.error('No transactions found in the JSON file.')
         return []
 
     # Filter transactions by symbol
@@ -94,4 +99,6 @@ def create_csv_content(symbol):
 
         return output.getvalue(), filename
     except Exception as e:
+        logger.error(f"Error creating CSV content: {e}")
+
         return None, 'transactions.csv'

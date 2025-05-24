@@ -1,6 +1,5 @@
 import logging
 import sqlite3, csv
-from datetime import datetime
 
 from io import StringIO
 from flask import Flask, request, render_template, redirect, url_for, send_file, flash, jsonify, make_response

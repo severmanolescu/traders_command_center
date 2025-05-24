@@ -55,14 +55,14 @@ def load_json_file(file_path):
 
 def get_atl_ath(file_path='./config/portfolio_history.json'):
     """
-    Return All Time Low and All Time High from the portfolio history JSON
+    Return All-Time Low and All-Time High from the portfolio history JSON
 
     Args:
         file_path (str): The path to the JSON
 
     Returns:
-        float: All Time Low
-        float All Time High
+        float: All-Time Low
+        float All-Time High
     """
     portfolio_history = load_json_file(file_path)
 

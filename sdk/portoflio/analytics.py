@@ -39,97 +39,110 @@ def calculate_profit_loss(current_value, initial_investment):
         'percentage': round(pnl_percentage, 2)
     }
 
-def calculate_changes_from_history():
+def load_and_normalize_history(path='./config/portfolio_history.json'):
     """
-    Calculate portfolio changes using portfolio_history.json.
+    Load and normalize the portfolio history from a JSON file.
+
+    Args:
+        path (str): Path to the portfolio history JSON file.
 
     Returns:
-        dict: Portfolio changes for different time periods
+        list: A list of history entries with parsed datetime, sorted from newest to oldest.
     """
-    history = load_json_file('./config/portfolio_history.json')
+    history = load_json_file(path)
 
-    # Check if history is a list or has a list inside
     if isinstance(history, dict) and 'history' in history:
         history = history['history']
     elif not isinstance(history, list):
         logger.error("Invalid history format")
-        return default_changes()
+        return []
 
-    # Ensure history has entries
-    if not history:
-        return default_changes()
-
-    # Parse datetimes and sort by date (newest first)
     for entry in history:
         if 'datetime' in entry:
             try:
                 entry['parsed_datetime'] = datetime.strptime(entry['datetime'], '%Y-%m-%d %H:%M:%S')
             except ValueError:
                 logger.error(f"Invalid datetime format: {entry['datetime']}")
-                entry['parsed_datetime'] = datetime.now()  # Default to now
+                entry['parsed_datetime'] = datetime.now()
 
-    # Sort by datetime (newest first)
     history.sort(key=lambda x: x.get('parsed_datetime', datetime.min), reverse=True)
+    return history
 
-    # Get current value from most recent entry
+def get_change_for_period(history, current_value, current_time, delta):
+    """
+    Calculate the portfolio change for a specific time period.
+
+    Args:
+        history (list): List of history entries with parsed datetime.
+        current_value (float): The most recent portfolio total value.
+        current_time (datetime): The datetime of the most recent entry.
+        delta (timedelta): The time period to compare against.
+
+    Returns:
+        dict: Dictionary with amount, percentage, and positivity of change.
+    """
+    target_time = current_time - delta
+    closest_entry = None
+    min_time_diff = float('inf')
+
+    for entry in history:
+        if 'parsed_datetime' not in entry:
+            continue
+        entry_time = entry['parsed_datetime']
+        time_diff = abs((entry_time - target_time).total_seconds())
+        if time_diff < min_time_diff:
+            min_time_diff = time_diff
+            closest_entry = entry
+
+    if closest_entry and min_time_diff <= 86400:
+        past_value = closest_entry['total_value']
+        change_amount = current_value - past_value
+        change_percentage = (change_amount / past_value * 100) if past_value else 0
+        return {
+            'amount': f"${round(change_amount, 2):,.2f}",
+            'percentage': f"{round(change_percentage, 2):,.2f}%",
+            'is_positive': change_amount >= 0
+        }
+
+    return {
+        'amount': 0,
+        'percentage': 0,
+        'is_positive': True
+    }
+
+def calculate_changes_from_history():
+    """
+    Calculate portfolio changes over 24h, 7d, and 30d using portfolio history.
+
+    Returns:
+        dict: Dictionary containing changes (amount, percentage, and positivity)
+              for each predefined time period.
+    """
+    history = load_and_normalize_history()
+    if not history:
+        return default_changes()
+
     current_entry = history[0]
     current_value = current_entry['total_value']
     current_time = current_entry['parsed_datetime']
 
-    # Define time periods
     time_periods = {
         '24h': timedelta(days=1),
         '7d': timedelta(days=7),
         '30d': timedelta(days=30)
     }
 
-    changes = {}
-
-    # For each time period, find the closest historical entry
-    for period_name, time_delta in time_periods.items():
-        target_time = current_time - time_delta
-
-        # Find the closest entry to the target time
-        closest_entry = None
-        min_time_diff = float('inf')
-
-        for entry in history:
-            if 'parsed_datetime' not in entry:
-                continue
-
-            entry_time = entry['parsed_datetime']
-            time_diff = abs((entry_time - target_time).total_seconds())
-
-            if time_diff < min_time_diff:
-                min_time_diff = time_diff
-                closest_entry = entry
-
-        # If we found a reasonably close entry (within 1 day of target)
-        if closest_entry and min_time_diff <= 86400:
-            past_value = closest_entry['total_value']
-
-            # Calculate change
-            change_amount = current_value - past_value
-            change_percentage = (change_amount / past_value * 100) if past_value else 0
-
-            changes[period_name] = {
-                'amount': f"${round(change_amount, 2):,.2f}",
-                'percentage': f"{round(change_percentage, 2):,.2f}%",
-                'is_positive': change_amount >= 0
-            }
-        else:
-            # If no suitable entry found, set to 0
-            changes[period_name] = {
-                'amount': 0,
-                'percentage': 0,
-                'is_positive': True
-            }
+    changes = {
+        period: get_change_for_period(history, current_value, current_time, delta)
+        for period, delta in time_periods.items()
+    }
 
     return changes
 
-
 def default_changes():
-    """Return default changes when no data is available"""
+    """
+    Return default changes when no data is available
+    """
     return {
         '24h': {'amount': 0, 'percentage': 0, 'is_positive': True},
         '7d': {'amount': 0, 'percentage': 0, 'is_positive': True},
