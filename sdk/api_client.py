@@ -22,6 +22,7 @@ def get_crypto_data_by_symbols(symbols, convert='USD'):
         logger.error("Failed to fetch CoinMarketCap API key!")
         return None
 
+    logger.info(api_key)
     symbols_str = ','.join(symbols)
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
 
@@ -40,6 +41,7 @@ def get_crypto_data_by_symbols(symbols, convert='USD'):
         response = requests.get(url, headers=headers, params=params, timeout=30)
 
         if response.status_code == 200:
+            logger.info("CMC data request successfully")
             return response.json()
         else:
             logger.error(f"API error: {response.status_code} - {response.text}")

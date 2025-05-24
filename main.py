@@ -1,15 +1,16 @@
 import logging
 import sqlite3, csv
+from datetime import datetime
 
 from io import StringIO
-from flask import Flask, request, render_template, redirect, url_for, send_file, flash
+from flask import Flask, request, render_template, redirect, url_for, send_file, flash, jsonify, make_response
 
-
-from sdk.portfolio_manager import(
+from sdk.portoflio.analytics import(
     calculate_portfolio_data,
 )
 from sdk.logger import setup_logging
 from sdk.variables_fetcher import update_buy
+from sdk.portoflio.transactions import load_transactions_by_symbol, create_csv_content
 
 app = Flask(__name__)
 app.secret_key = '123123123123123123'
@@ -54,6 +55,26 @@ def index():
     conn.close()
 
     return render_template("index.html", trades=trades, pairs=pairs, strategies=strategies)
+
+
+@app.route('/transactions/<symbol>')
+def get_transactions_by_symbol(symbol):
+    try:
+        return jsonify(load_transactions_by_symbol(symbol))
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/export/transactions/<symbol>')
+def export_transactions_csv(symbol):
+    output, filename = create_csv_content(symbol)
+
+    response = make_response(output)
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    return response
 
 @app.route('/history')
 def history_tab():
@@ -160,5 +181,8 @@ def export_csv():
         download_name='trades.csv'
     )
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    host = "127.0.0.1"
+    port = 5000
+    print(f"Starting server at http://{host}:{port}")
+    app.run(host=host, port=port)
