@@ -1,8 +1,9 @@
 import os
 import json
 import logging
-
 from datetime import datetime, timezone
+
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -80,15 +81,12 @@ def get_atl_ath(file_path='./config/portfolio_history.json'):
 
     return round(all_time_low, 2), round(all_time_high, 2)
 
-def save_transaction(symbol, action, amount, price, file_path='./config/transactions.json'):
+def save_transaction(transaction, file_path='./config/transactions.json'):
     """
     Records a transaction in the transactions file.
 
     Args:
-        symbol (str): Coin symbol
-        action (str): Buy or Sell
-        amount (float): Transaction coin amount
-        price (float): Transaction price
+        transaction (dict): Transaction data to be saved
         file_path (str): Path to the JSON file
     """
     transactions = load_json_file(file_path)
@@ -96,14 +94,6 @@ def save_transaction(symbol, action, amount, price, file_path='./config/transact
     if transactions is None:
         return
 
-    transaction = {
-        "symbol": symbol,
-        "action": action.upper(),
-        "amount": round(float(amount), 6),
-        "price": round(float(price), 6),
-        "total": round(float(amount) * float(price), 2),
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
     transactions.append(transaction)
     save_data_to_json_file(file_path, transactions)
 
@@ -119,41 +109,42 @@ def save_data_to_json_file(file_path, data):
     with open(file_path, "w") as file:
         json.dump(data, file, indent=4)
 
-def update_buy(symbol, amount, price):
+def save_new_transaction(symbol, amount, price, action, date=None, exchange=None, wallet=None, notes=None):
     """
-    Handles buying a cryptocurrency and updating the portfolio correctly.
-
+    Save a new transaction to the transactions file.
     Args:
         symbol (str): Coin symbol
         amount (float): Transaction coin amount
         price (float): Transaction price
+        action (str): Transaction action ('BUY', 'SELL')
+        date (str, optional): Transaction date in ISO format. Defaults to None.
+        exchange (str, optional): Exchange where the transaction occurred. Defaults to None.
+        wallet (str, optional): Wallet where the asset is stored. Defaults to None.
+        notes (str, optional): Additional notes for the transaction. Defaults to None.
     """
-    portfolio = load_json_file('./config/portfolio.json')
+    utc_dt = datetime.now(timezone.utc)
+    if date:
+        # Parse to naive datetime (assumes local time)
+        naive_dt = datetime.strptime(date, "%Y-%m-%dT%H:%M")
 
-    if not portfolio:
-        return
+        local_tz = pytz.timezone('Europe/Bucharest')
 
-    if symbol in portfolio:
-        current_quantity = portfolio[symbol]["quantity"]
-        current_avg_price = portfolio[symbol]["average_price"]
-        current_total_investment = portfolio[symbol]["total_investment"]
+        # Localize the naive datetime
+        localized_dt = local_tz.localize(naive_dt)
 
-        # Weighted average price calculation
-        new_quantity = current_quantity + amount
-        new_avg_price = ((current_quantity * current_avg_price) + (amount * price)) / new_quantity
-        new_total_investment = current_total_investment + (amount * price)
-    else:
-        # If it's a new asset, initialize with all required fields
-        new_quantity = amount
-        new_avg_price = price
-        new_total_investment = round(amount * price, 2)
+        # Convert to UTC
+        utc_dt = localized_dt.astimezone(pytz.utc)
 
-    portfolio[symbol] = {
-        "quantity": round(new_quantity, 6),
-        "average_price": round(new_avg_price, 6),
-        "total_investment": round(new_total_investment, 2),
-        "allocation_percentage": None  # To be calculated later
+    transaction = {
+        "symbol": symbol,
+        "action": action,
+        "amount": round(float(amount), 6),
+        "price": round(float(price), 6),
+        "total": round(float(amount) * float(price), 2),
+        "exchange": exchange if exchange else "Unknown",
+        "wallet": wallet if wallet else "Unknown",
+        "notes": notes if notes else "",
+        "timestamp": utc_dt.isoformat() ,
     }
 
-    save_data_to_json_file('./config/portfolio.json', portfolio)
-    save_transaction(symbol, 'Buy', amount, price)
+    save_transaction(transaction)

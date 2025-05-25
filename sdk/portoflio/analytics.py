@@ -9,7 +9,11 @@ from sdk.portoflio.holdings import get_holdings
 from sdk.portoflio.transactions import load_transactions
 from sdk.variables_fetcher import load_json_file, get_atl_ath
 from sdk.portoflio.performance import get_portfolio_performance
-from sdk.portoflio.risk import calculate_risk_level, calculate_portfolio_volatility, determine_risk_level
+from sdk.portoflio.risk import (
+    calculate_risk_level,
+    calculate_portfolio_volatility,
+    determine_risk_level
+)
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +202,7 @@ def calculate_metrics_from_portfolio_history():
     # Convert to DataFrame for easier manipulation
     df = pd.DataFrame(load_json_file('./config/portfolio_history.json'))
 
-    if len(df) is 0:
+    if len(df) == 0:
         return 0, 0
 
     # Convert datetime to proper datetime format and set as index

@@ -2,9 +2,16 @@ import csv
 import logging
 from io import StringIO
 
-from sdk.variables_fetcher import load_json_file
+import pytz
 
-from datetime import datetime
+from sdk.variables_fetcher import (
+    load_json_file,
+    save_transaction,
+    save_new_transaction,
+    save_data_to_json_file,
+)
+
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +67,7 @@ def create_csv_content(symbol):
     Create CSV content from transactions.
 
     Args:
-        symbol: The symbol to filter transactions by
+        symbol (str): The symbol to filter transactions by
 
     Returns:
         str: CSV formatted string.
@@ -102,3 +109,84 @@ def create_csv_content(symbol):
         logger.error(f"Error creating CSV content: {e}")
 
         return None, 'transactions.csv'
+
+def update_buy(symbol, amount, price, date=None, exchange=None, wallet=None, notes=None):
+    """
+    Handles buying a cryptocurrency and updating the portfolio correctly.
+
+    Args:
+        symbol (str): Coin symbol
+        amount (float): Transaction coin amount
+        price (float): Transaction price
+        date (str, optional): Transaction date in ISO format. Defaults to None.
+        exchange (str, optional): Exchange where the transaction occurred. Defaults to None.
+        wallet (str, optional): Wallet where the asset is stored. Defaults to None.
+        notes (str, optional): Additional notes for the transaction. Defaults to None.
+    """
+    portfolio = load_json_file('./config/portfolio.json')
+
+    if not portfolio:
+        return
+
+    if symbol in portfolio:
+        current_quantity = portfolio[symbol]["quantity"]
+        current_avg_price = portfolio[symbol]["average_price"]
+        current_total_investment = portfolio[symbol]["total_investment"]
+
+        # Weighted average price calculation
+        new_quantity = current_quantity + amount
+        new_avg_price = ((current_quantity * current_avg_price) + (amount * price)) / new_quantity
+        new_total_investment = current_total_investment + (amount * price)
+    else:
+        # If it's a new asset, initialize with all required fields
+        new_quantity = amount
+        new_avg_price = price
+        new_total_investment = round(amount * price, 2)
+
+    portfolio[symbol] = {
+        "quantity": round(new_quantity, 6),
+        "average_price": round(new_avg_price, 6),
+        "total_investment": round(new_total_investment, 2),
+        "allocation_percentage": None  # To be calculated later
+    }
+    save_data_to_json_file('./config/portfolio.json', portfolio)
+
+    save_new_transaction(symbol, amount, price, 'BUY', date, exchange, wallet, notes)
+
+
+def update_sell(symbol, amount, price, date=None, exchange=None, wallet=None, notes=None):
+    """
+    Handles selling a cryptocurrency, updating portfolio, and adding USDT balance.
+    Args:
+        symbol (str): Coin symbol
+        amount (float): Transaction coin amount
+        price (float): Transaction price
+        date (str, optional): Transaction date in ISO format. Defaults to None.
+        exchange (str, optional): Exchange where the transaction occurred. Defaults to None.
+        wallet (str, optional): Wallet where the asset is stored. Defaults to None.
+        notes (str, optional): Additional notes for the transaction. Defaults to None.
+    """
+    portfolio = load_json_file('./config/portfolio.json')
+
+    if not portfolio:
+        return False
+
+    if symbol in portfolio:
+        current_quantity = portfolio[symbol]["quantity"]
+        current_avg_price = portfolio[symbol]["average_price"]
+        current_total_investment = portfolio[symbol]["total_investment"]
+
+        # Weighted average price calculation
+        new_quantity = current_quantity - amount
+    else:
+        return False
+
+    portfolio[symbol] = {
+        "quantity": round(new_quantity, 6),
+        "average_price": round(current_avg_price, 6),
+        "total_investment": round(current_total_investment, 2),
+        "allocation_percentage": None  # To be calculated later
+    }
+    save_data_to_json_file('./config/portfolio.json', portfolio)
+
+    save_new_transaction(symbol, amount, price, 'SELL', date, exchange, wallet, notes)
