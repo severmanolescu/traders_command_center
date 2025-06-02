@@ -1,7 +1,6 @@
 import logging
-import sqlite3, csv
+import sqlite3
 
-from io import StringIO
 from flask import (
     flash,
     Flask,
@@ -9,11 +8,11 @@ from flask import (
     url_for,
     jsonify,
     redirect,
-    send_file,
     make_response,
     render_template,
 )
 
+from sdk.crypto.crypto_market_global_data import get_dict_crypto_market_global_data
 from sdk.portoflio.analytics import(
     calculate_portfolio_data,
 )
@@ -24,6 +23,8 @@ from sdk.portoflio.transactions import (
     create_csv_content,
     load_transactions_by_symbol,
 )
+from sdk.data_base.data_base_handler import initialize_data_base
+from sdk.crypto.fear_and_greed_handler import get_fear_greed_data
 
 app = Flask(__name__)
 app.secret_key = '123123123123123123'
@@ -32,31 +33,6 @@ DB_FILE = 'trades.db'
 
 setup_logging()
 logger = logging.getLogger(__name__)
-
-# Initialize DB if not exists
-conn = sqlite3.connect(DB_FILE)
-c = conn.cursor()
-conn.execute('''CREATE TABLE IF NOT EXISTS trades (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  date TEXT,
-  pair TEXT,
-  type TEXT,
-  entry REAL,
-  stopLoss REAL,
-  takeProfit REAL,
-  exit REAL,
-  profit REAL,
-  size REAL,
-  leverage REAL,
-  strategy TEXT,
-  result TEXT,
-  confidence INTEGER,
-  session TEXT,
-  note TEXT
-)''')
-
-conn.commit()
-conn.close()
 
 @app.route('/')
 def index():
@@ -89,9 +65,7 @@ def export_transactions_csv(symbol):
 
 @app.route('/add-transaction', methods=['POST'])
 def add_new_transaction():
-    print("Route hit!") # Add this line
     try:
-        # Get form data (same as before)
         asset = request.form.get('asset')
         amount = request.form.get('amount')
         purchase_price = request.form.get('purchasePrice')
@@ -100,7 +74,6 @@ def add_new_transaction():
         wallet = request.form.get('wallet')
         notes = request.form.get('notes')
 
-        # Validate and add transaction (same as before)
         if not all([asset, amount, purchase_price, purchase_date]):
             return jsonify({'error': 'Please fill in all required fields'}), 400
 
@@ -122,6 +95,28 @@ def history_tab():
     conn.close()
 
     return render_template("history.html", trades=trades, pairs=pairs, strategies=strategies)
+
+@app.route('/api/global-crypto-data')
+def get_global_crypto_data():
+    """
+    API endpoint to get Crypto Market Global Data
+    """
+    data = get_dict_crypto_market_global_data()
+    return jsonify(data)
+
+@app.route('/api/fear-greed')
+def get_fear_greed():
+    """
+    API endpoint to get Fear & Greed data
+    """
+    data = get_fear_greed_data()
+    return jsonify(data)
+
+@app.route('/crypto')
+def crypto():
+    return render_template(
+        'crypto.html'
+    )
 
 @app.route('/portfolio')
 def portfolio():
@@ -186,11 +181,6 @@ def sell_asset():
         flash(f'An error occurred: {str(e)}', 'error')
         return redirect(url_for('portfolio'))
 
-# Handle sell transaction
-# Get form data from request.form
-# Process the transaction
-# Redirect back to portfolio page
-
 @app.route('/add', methods=['POST'])
 def add_trade():
     data = [request.form[k] for k in [
@@ -224,8 +214,11 @@ def export_csv():
     return response
 
 if __name__ == "__main__":
+    initialize_data_base(DB_FILE)
+
     host = "127.0.0.1"
     port = 5000
+
     print(f"Starting server at http://{host}:{port}")
 
     print("Available routes:")
