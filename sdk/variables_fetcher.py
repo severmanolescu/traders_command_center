@@ -22,9 +22,31 @@ def get_api_key(key_name):
         with open("./config/config.json", 'r') as file:
             logger.info(f'Requested API key: {key_name}')
             config = json.load(file)
-            return config['api_keys'].get(key_name.lower())
+            return config['api_keys'].get(key_name.upper())
     except (FileNotFoundError, KeyError) as e:
         logger.error(f"Error fetching API key {key_name}: {str(e)}")
+        print(f"Error fetching API key {key_name}: {str(e)}")
+
+        return None
+
+def get_api_url(key_name):
+    """
+    Retrieve an API URL from the config.json file.
+
+    Args:
+        key_name (str): The name of the API URL to retrieve
+
+    Returns:
+        str or None: The API URL if found, None otherwise
+    """
+    try:
+        with open("./config/config.json", 'r') as file:
+            logger.info(f'Requested API URL: {key_name}')
+            config = json.load(file)
+            return config['api_urls'].get(key_name.upper())
+    except (FileNotFoundError, KeyError) as e:
+        logger.error(f"Error fetching API URL {key_name}: {str(e)}")
+        print(f"Error fetching API URL {key_name}: {str(e)}")
 
         return None
 
