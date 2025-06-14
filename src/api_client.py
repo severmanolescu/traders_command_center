@@ -6,12 +6,12 @@ import logging
 
 import requests
 
-from sdk.variables_fetcher import get_api_key, get_api_url
+from src.variables_fetcher import get_api_key, get_api_url
 
 logger = logging.getLogger(__name__)
 
 
-def get_crypto_data_by_symbols(symbols, convert="USD"):
+def get_crypto_data_by_symbols(symbols, convert="USD", session=None):
     """
     Get cryptocurrency data from CoinMarketCap for specific symbols.
 
@@ -22,6 +22,8 @@ def get_crypto_data_by_symbols(symbols, convert="USD"):
     Returns:
         dict: JSON response with cryptocurrency data or None if request failed
     """
+    session = session or requests
+
     api_key = get_api_key("CMC_API_KEY")
     cmc_url = get_api_url("CMC_API_URL")
 
@@ -37,7 +39,7 @@ def get_crypto_data_by_symbols(symbols, convert="USD"):
 
     try:
         logger.info("Requesting data for symbols: %s", symbols_str)
-        response = requests.get(cmc_url, headers=headers, params=params, timeout=30)
+        response = session.get(cmc_url, headers=headers, params=params, timeout=30)
 
         if response.status_code == 200:
             logger.info("CMC data request successfully")
@@ -52,15 +54,18 @@ def get_crypto_data_by_symbols(symbols, convert="USD"):
         return None
 
 
-def get_crypto_global_data(convert="USD"):
+def get_crypto_global_data(convert="USD", session=None):
     """
     Fetch global cryptocurrency market data from CoinMarketCap.
     Args:
+        session: In case it is run from a test function
         convert: (str) Currency to convert values to (default is 'USD')
 
     Returns:
         dict: JSON response with global market data or None if request failed
     """
+    session = session or requests
+
     api_key = get_api_key("CMC_API_KEY")
     cmc_url = get_api_url("CMC_API_URL")
 
@@ -74,7 +79,7 @@ def get_crypto_global_data(convert="USD"):
 
     try:
         logger.info("Requesting data for global metrics")
-        response = requests.get(cmc_url, headers=headers, params=params, timeout=30)
+        response = session.get(cmc_url, headers=headers, params=params, timeout=30)
 
         if response.status_code == 200:
             logger.info("CMC data request successfully")
@@ -88,7 +93,7 @@ def get_crypto_global_data(convert="USD"):
         return None
 
 
-def get_eth_gas_fee():
+def get_eth_gas_fee(session=None):
     """
     Fetch the current Ethereum gas fees from Etherscan.
     Returns:
@@ -97,8 +102,10 @@ def get_eth_gas_fee():
         fast_gas (str or None): Fast gas price in Gwei
     """
     try:
+        session = session or requests
+
         url = get_api_url("ETHERSCAN_GAS_API_URL") + get_api_key("ETHERSCAN_API_KEY")
-        response = requests.get(url, timeout=30)
+        response = session.get(url, timeout=30)
 
         if response.status_code == 200:
             gas_data = response.json()["result"]

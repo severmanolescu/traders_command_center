@@ -16,12 +16,12 @@ from flask import (
     url_for,
 )
 
-from sdk.crypto.crypto_market_global_data import get_dict_crypto_market_global_data
-from sdk.crypto.fear_and_greed_handler import get_fear_greed_data
-from sdk.data_base.data_base_handler import initialize_data_base
-from sdk.logger import setup_logging
-from sdk.portoflio.analytics import calculate_portfolio_data
-from sdk.portoflio.transactions import (
+from src.crypto.crypto_market_global_data import get_dict_crypto_market_global_data
+from src.crypto.fear_and_greed_handler import get_fear_greed_data
+from src.data_base.data_base_handler import initialize_data_base
+from src.logger import setup_logging
+from src.portoflio.analytics import calculate_portfolio_data
+from src.portoflio.transactions import (
     create_csv_content,
     load_transactions_by_symbol,
     update_buy,

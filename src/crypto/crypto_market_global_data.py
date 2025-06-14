@@ -4,7 +4,7 @@ This module fetches global cryptocurrency market data from the CoinMarketCap API
 and formats it for easy consumption.
 """
 
-from sdk.api_client import get_crypto_global_data
+from src.api_client import get_crypto_global_data
 
 
 def format_market_cap(value):

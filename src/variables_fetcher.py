@@ -63,13 +63,10 @@ def load_json_file(file_path):
 
     Args:
         file_path (str): The file path
-
-    Returns:
-        dict: JSON file content
     """
     if not os.path.exists(file_path):
         logger.error("JSON %s not found. Using an empty JSON.", file_path)
-        return {}
+        return []
 
     try:
         with open(file_path, "r", encoding="utf-8") as file:
@@ -78,7 +75,7 @@ def load_json_file(file_path):
             return portfolio
     except json.JSONDecodeError:
         logger.error("Invalid JSON file %s. Using an empty JSON.", file_path)
-        return {}
+        return []
     # pylint: disable=broad-exception-caught
     except Exception as e:
         logger.error(
@@ -100,8 +97,8 @@ def get_atl_ath(file_path="./config/portfolio_history.json"):
     """
     portfolio_history = load_json_file(file_path)
 
-    all_time_high = 0
-    all_time_low = 99999999
+    all_time_high = 0.0
+    all_time_low = 99999999.9
 
     logger.info("Calculate portfolio All Time Low and All Time High!")
 
@@ -158,11 +155,20 @@ def save_data_to_json_file(file_path, data):
 
 # pylint: disable=too-many-arguments, too-many-positional-arguments
 def save_new_transaction(
-    symbol, amount, price, action, date=None, exchange=None, wallet=None, notes=None
+    symbol,
+    amount,
+    price,
+    action,
+    date=None,
+    exchange=None,
+    wallet=None,
+    notes=None,
+    file_path="./config/transactions.json",
 ):
     """
     Save a new transaction to the transactions file.
     Args:
+        file_path (str): Transaction file path
         symbol (str): Coin symbol
         amount (float): Transaction coin amount
         price (float): Transaction price
@@ -172,6 +178,7 @@ def save_new_transaction(
         wallet (str, optional): Wallet where the asset is stored. Defaults to None.
         notes (str, optional): Additional notes for the transaction. Defaults to None.
     """
+    action = action.upper()
     if action not in ["BUY", "SELL"]:
         logger.error("Invalid action: %s. Must be 'BUY' or 'SELL'.", action)
         raise ValueError("Action must be 'BUY' or 'SELL'.")
@@ -205,5 +212,5 @@ def save_new_transaction(
         "timestamp": utc_dt.isoformat(),
     }
 
-    save_transaction(transaction)
+    save_transaction(transaction, file_path)
     logger.info("New transaction saved: %s", transaction)

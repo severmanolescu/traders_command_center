@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from io import StringIO
 
-from sdk.variables_fetcher import (
+from src.variables_fetcher import (
     load_json_file,
     save_data_to_json_file,
     save_new_transaction,

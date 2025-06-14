@@ -9,15 +9,15 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from sdk.portoflio.holdings import get_holdings
-from sdk.portoflio.performance import get_portfolio_performance
-from sdk.portoflio.risk import (
+from src.portoflio.holdings import get_holdings
+from src.portoflio.performance import get_portfolio_performance
+from src.portoflio.risk import (
     calculate_portfolio_volatility,
     calculate_risk_level,
     determine_risk_level,
 )
-from sdk.portoflio.transactions import load_transactions
-from sdk.variables_fetcher import get_atl_ath, load_json_file
+from src.portoflio.transactions import load_transactions
+from src.variables_fetcher import get_atl_ath, load_json_file
 
 logger = logging.getLogger(__name__)
 

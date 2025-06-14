@@ -4,7 +4,7 @@ Risk assessment module for portfolio management.
 
 import logging
 
-from sdk.variables_fetcher import load_json_file
+from src.variables_fetcher import load_json_file
 
 logger = logging.getLogger(__name__)
 

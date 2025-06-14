@@ -5,7 +5,7 @@ Calculate portfolio performance over time and categorize it into different time 
 import json
 from datetime import datetime
 
-from sdk.variables_fetcher import load_json_file
+from src.variables_fetcher import load_json_file
 
 
 def categorize_history_by_time(portfolio_history):

@@ -2,8 +2,8 @@
 Get holdings from portfolio.json and CoinMarketCap API.
 """
 
-from sdk.api_client import get_crypto_data_by_symbols
-from sdk.variables_fetcher import load_json_file
+from src.api_client import get_crypto_data_by_symbols
+from src.variables_fetcher import load_json_file
 
 
 # pylint: disable=too-many-locals

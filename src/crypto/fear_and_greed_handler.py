@@ -8,7 +8,7 @@ import logging
 
 import requests
 
-from sdk.variables_fetcher import get_api_url
+from src.variables_fetcher import get_api_url
 
 logger = logging.getLogger(__name__)
 
