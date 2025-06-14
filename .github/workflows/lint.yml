@@ -2,7 +2,7 @@ name: GitHub Actions
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   black:
