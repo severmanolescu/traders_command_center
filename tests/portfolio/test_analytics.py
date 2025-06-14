@@ -1,3 +1,7 @@
+"""
+Test cases for portfolio analytics functions.
+"""
+
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
