@@ -1,4 +1,13 @@
+"""
+Data Base Handler for SQLite
+This module initializes the SQLite database and creates the necessary tables for storing trade data.
+"""
+
+import logging
+import os
 import sqlite3
+
+logger = logging.getLogger(__name__)
 
 
 def initialize_data_base(data_base_file_path):
@@ -7,9 +16,15 @@ def initialize_data_base(data_base_file_path):
     Args:
         data_base_file_path (str): The file path for the SQLite database.
     """
+    if not os.path.exists(os.path.dirname(data_base_file_path)):
+        os.makedirs(os.path.dirname(data_base_file_path), exist_ok=True)
+        logger.info(
+            "Created directory for file: %s", os.path.dirname(data_base_file_path)
+        )
+
     conn = sqlite3.connect(data_base_file_path)
-    c = conn.cursor()
-    conn.execute('''CREATE TABLE IF NOT EXISTS trades (
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS trades (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT,
       pair TEXT,
@@ -26,7 +41,8 @@ def initialize_data_base(data_base_file_path):
       confidence INTEGER,
       session TEXT,
       note TEXT
-    )''')
+    )"""
+    )
 
     conn.commit()
     conn.close()

@@ -1,4 +1,12 @@
+"""
+Risk assessment module for portfolio management.
+"""
+
+import logging
+
 from sdk.variables_fetcher import load_json_file
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_risk_level(holdings):
@@ -16,7 +24,11 @@ def calculate_risk_level(holdings):
         return "Low", 0
 
     # You can define asset risk levels based on your judgment or historical data
-    asset_risk_levels = load_json_file('./config/asset_risk_levels.json')
+    asset_risk_levels = load_json_file("./config/asset_risk_levels.json")
+
+    if not asset_risk_levels:
+        logger.warning("Asset risk levels not found or empty. Defaulting to low risk.")
+        return "Low", 0
 
     # Default risk level for unknown assets
     default_risk = 85
@@ -26,8 +38,8 @@ def calculate_risk_level(holdings):
     weighted_risk = 0
 
     for holding in holdings:
-        symbol = holding['symbol']
-        allocation = holding['percentage']
+        symbol = holding["symbol"]
+        allocation = holding["percentage"]
         risk_score = asset_risk_levels.get(symbol, default_risk)
 
         weighted_risk += risk_score * allocation
@@ -68,48 +80,50 @@ def calculate_portfolio_volatility(holdings):
     weighted_volatility = 0
 
     for holding in holdings:
-        allocation = holding['percentage']
+        allocation = holding["percentage"]
 
-        week_volatility = abs(holding['week_change'])
+        week_volatility = abs(holding["week_change"])
         annualized_volatility = week_volatility * 3.7  # Rough conversion to annual
 
         weighted_volatility += annualized_volatility * allocation
         total_allocation += allocation
 
     # Calculate average volatility
-    avg_volatility = weighted_volatility / total_allocation if total_allocation > 0 else 0
+    avg_volatility = (
+        weighted_volatility / total_allocation if total_allocation > 0 else 0
+    )
 
     return round(avg_volatility, 1)
 
+
+# pylint: disable=too-many-return-statements
 def determine_risk_level(value, metric_type):
     """
     Determine risk level, color, and width based on metric value
     """
-    if metric_type == 'volatility':
+
+    if metric_type == "volatility":
         if value < 15:
-            return {'level': 'Low', 'color': 'green', 'width': '40%'}
-        elif value < 30:
-            return {'level': 'Medium', 'color': 'yellow', 'width': '65%'}
-        else:
-            return {'level': 'High', 'color': 'red', 'width': '80%'}
-    elif metric_type == 'diversity':
+            return {"level": "Low", "color": "green", "width": "40%"}
+        if value < 30:
+            return {"level": "Medium", "color": "yellow", "width": "65%"}
+        return {"level": "High", "color": "red", "width": "80%"}
+    if metric_type == "diversity":
         if value < 4:
-            return {'level': 'Poor', 'color': 'red', 'width': '35%'}
-        elif value < 7:
-            return {'level': 'Medium', 'color': 'yellow', 'width': '60%'}
-        else:
-            return {'level': 'Good', 'color': 'green', 'width': '74%'}
-    elif metric_type == 'max_drawdown':
+            return {"level": "Poor", "color": "red", "width": "35%"}
+        if value < 7:
+            return {"level": "Medium", "color": "yellow", "width": "60%"}
+        return {"level": "Good", "color": "green", "width": "74%"}
+    if metric_type == "max_drawdown":
         if value < 15:
-            return {'level': 'Low', 'color': 'green', 'width': '40%'}
-        elif value < 25:
-            return {'level': 'Medium', 'color': 'yellow', 'width': '65%'}
-        else:
-            return {'level': 'High', 'color': 'red', 'width': '80%'}
-    elif metric_type == 'sharpe_ratio':
+            return {"level": "Low", "color": "green", "width": "40%"}
+        if value < 25:
+            return {"level": "Medium", "color": "yellow", "width": "65%"}
+        return {"level": "High", "color": "red", "width": "80%"}
+    if metric_type == "sharpe_ratio":
         if value < 0.5:
-            return {'level': 'Poor', 'color': 'red', 'width': '35%'}
-        elif value < 1:
-            return {'level': 'Medium', 'color': 'yellow', 'width': '50%'}
-        else:
-            return {'level': 'Good', 'color': 'green', 'width': '68%'}
+            return {"level": "Poor", "color": "red", "width": "35%"}
+        if value < 1:
+            return {"level": "Medium", "color": "yellow", "width": "50%"}
+        return {"level": "Good", "color": "green", "width": "68%"}
+    return {"level": "Unknown", "color": "gray", "width": "50%"}

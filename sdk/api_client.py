@@ -1,11 +1,17 @@
+"""
+Fetch cryptocurrency data from CoinMarketCap and Ethereum gas fees from Etherscan.
+"""
+
 import logging
+
 import requests
 
 from sdk.variables_fetcher import get_api_key, get_api_url
 
 logger = logging.getLogger(__name__)
 
-def get_crypto_data_by_symbols(symbols, convert='USD'):
+
+def get_crypto_data_by_symbols(symbols, convert="USD"):
     """
     Get cryptocurrency data from CoinMarketCap for specific symbols.
 
@@ -17,40 +23,36 @@ def get_crypto_data_by_symbols(symbols, convert='USD'):
         dict: JSON response with cryptocurrency data or None if request failed
     """
     api_key = get_api_key("CMC_API_KEY")
+    cmc_url = get_api_url("CMC_API_URL")
 
     if api_key is None:
         logger.error("Failed to fetch CoinMarketCap API key!")
         return None
 
-    symbols_str = ','.join(symbols)
-    url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+    symbols_str = ",".join(symbols)
 
-    params = {
-        'symbol': symbols_str,
-        'convert': convert
-    }
+    params = {"symbol": symbols_str, "convert": convert}
 
-    headers = {
-        'X-CMC_PRO_API_KEY': api_key,
-        'Accept': 'application/json'
-    }
+    headers = {"X-CMC_PRO_API_KEY": api_key, "Accept": "application/json"}
 
     try:
-        logger.info(f"Requesting data for symbols: {symbols_str}")
-        response = requests.get(url, headers=headers, params=params, timeout=30)
+        logger.info("Requesting data for symbols: %s", symbols_str)
+        response = requests.get(cmc_url, headers=headers, params=params, timeout=30)
 
         if response.status_code == 200:
             logger.info("CMC data request successfully")
             return response.json()
-        else:
-            logger.error(f"API error: {response.status_code} - {response.text}")
-            return None
 
-    except Exception as e:
-        logger.error(f"Request error: {str(e)}")
+        logger.error("API error: %s - %s", response.status_code, response.text)
         return None
 
-def get_crypto_global_data(convert='USD'):
+    # pylint: disable=broad-exception-caught
+    except Exception as e:
+        logger.error("Request error: %s", str(e))
+        return None
+
+
+def get_crypto_global_data(convert="USD"):
     """
     Fetch global cryptocurrency market data from CoinMarketCap.
     Args:
@@ -60,36 +62,31 @@ def get_crypto_global_data(convert='USD'):
         dict: JSON response with global market data or None if request failed
     """
     api_key = get_api_key("CMC_API_KEY")
+    cmc_url = get_api_url("CMC_API_URL")
 
     if api_key is None:
         logger.error("Failed to fetch CoinMarketCap API key!")
         return None
 
-    url = 'https://pro-api.coinmarketcap.com/v1/global-metrics/quotes/latest'
+    params = {"convert": convert}
 
-    params = {
-        'convert': convert
-    }
-
-    headers = {
-        'X-CMC_PRO_API_KEY': api_key,
-        'Accept': 'application/json'
-    }
+    headers = {"X-CMC_PRO_API_KEY": api_key, "Accept": "application/json"}
 
     try:
-        logger.info(f"Requesting data for global metrics")
-        response = requests.get(url, headers=headers, params=params, timeout=30)
+        logger.info("Requesting data for global metrics")
+        response = requests.get(cmc_url, headers=headers, params=params, timeout=30)
 
         if response.status_code == 200:
             logger.info("CMC data request successfully")
             return response.json()
-        else:
-            logger.error(f"API error: {response.status_code} - {response.text}")
-            return None
 
-    except Exception as e:
-        logger.error(f"Request error: {str(e)}")
+        logger.error("API error: %s - %s", response.status_code, response.text)
         return None
+    # pylint: disable=broad-exception-caught
+    except Exception as e:
+        logger.error("Request error: %s", str(e))
+        return None
+
 
 def get_eth_gas_fee():
     """
@@ -109,11 +106,12 @@ def get_eth_gas_fee():
             propose_gas = gas_data["ProposeGasPrice"]
             fast_gas = gas_data["FastGasPrice"]
             return safe_gas, propose_gas, fast_gas
-        else:
-            logger.error(f" Failed to fetch ETH gas fees.")
-            print("❌ Failed to fetch ETH gas fees.")
-            return None, None, None
+
+        logger.error(" Failed to fetch ETH gas fees.")
+        print("❌ Failed to fetch ETH gas fees.")
+        return None, None, None
+    # pylint: disable=broad-exception-caught
     except Exception as e:
-        logger.error(f" Error fetching ETH gas fees: {e}")
+        logger.error(" Error fetching ETH gas fees: %s", str(e))
         print(f"❌ Error fetching ETH gas fees: {e}")
         return None, None, None

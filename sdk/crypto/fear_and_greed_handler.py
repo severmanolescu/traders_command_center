@@ -1,7 +1,14 @@
+"""
+Fear & Greed Index Handler
+This module fetches the Fear & Greed Index data from an external
+API and processes it to provide a classification and color coding based on the index value.
+"""
+
 import logging
+
 import requests
 
-from random import random
+from sdk.variables_fetcher import get_api_url
 
 logger = logging.getLogger(__name__)
 
@@ -19,20 +26,23 @@ def get_fear_greed_data():
     """
     try:
         # Try to get real data from Alternative.me Crypto Fear & Greed API
-        response = requests.get('https://api.alternative.me/fng/', timeout=5)
+        url = get_api_url("ALTERNATIVE_ME_FNG")
+
+        response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json()
-            value = int(data['data'][0]['value'])
+            value = int(data["data"][0]["value"])
         else:
-            logger.error("Error fetching Fear & Greed data from API, using random value instead.")
+            logger.error(
+                "Error fetching Fear & Greed data from API, using random value instead."
+            )
 
             # Fallback to random value
-            value = random.randint(1, 100)
-    except Exception as e:
-        # Fallback to random value if API fails
-        logger.error("Failed to fetch Fear & Greed data from API, status code: %s", e)
+            value = 0
+    except requests.RequestException as e:
+        logger.error("RequestException while fetching Fear & Greed data: %s", e)
 
-        value = random.randint(1, 100)
+        value = 0
 
     # Calculate classification
     if value <= 25:
@@ -57,9 +67,9 @@ def get_fear_greed_data():
     stroke_offset = total_length - (total_length * progress)
 
     return {
-        'value': value,
-        'classification': classification,
-        'last_updated': 'Updated now',
-        'stroke_offset': stroke_offset,
-        'color': color
+        "value": value,
+        "classification": classification,
+        "last_updated": "Updated now",
+        "stroke_offset": stroke_offset,
+        "color": color,
     }
