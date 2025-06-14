@@ -54,7 +54,7 @@ env/
 # Test files
 test*.json
 test*.db
-test.py
+test*.py
 
 # Coverage reports
 /plots
