@@ -49,8 +49,6 @@ env/
 /config/portfolio_history.json
 /config/transactions.json
 
-
-
 # Test files
 test*.json
 test*.db

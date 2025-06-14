@@ -1,3 +1,7 @@
+"""
+Tests API client module.
+"""
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -7,6 +11,8 @@ from src.api_client import (
     get_crypto_global_data,
     get_eth_gas_fee,
 )
+
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
@@ -67,4 +73,6 @@ def test_get_eth_gas_fee(mock_session, mock_response):
 
     safe_gas, propose_gas, fast_gas = get_eth_gas_fee(session=mock_session)
     assert isinstance(safe_gas, str), "Safe gas should be a string"
-    assert safe_gas is "20", "Safe gas should be 20"
+    assert safe_gas == "20", "Safe gas should be 20"
+    assert propose_gas == "50", "Safe gas should be 20"
+    assert fast_gas == "100", "Safe gas should be 20"
