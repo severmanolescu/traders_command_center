@@ -1,0 +1,84 @@
+    .card-dragging {
+      transform: scale(1.02);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+      opacity: 0.8;
+      z-index: 1000;
+      border: 2px solid rgb(45, 212, 191);
+    }
+    .drag-over {
+      border: 2px dashed rgb(45, 212, 191) !important;
+      background-color: rgba(45, 212, 191, 0.1);
+    }
+
+    /* Pulse animations */
+    @keyframes pulse-green {
+      0%, 100% { background-color: rgba(34, 197, 94, 0.1); }
+      50% { background-color: rgba(34, 197, 94, 0.3); }
+    }
+    @keyframes pulse-red {
+      0%, 100% { background-color: rgba(239, 68, 68, 0.1); }
+      50% { background-color: rgba(239, 68, 68, 0.3); }
+    }
+    .pulse-green { animation: pulse-green 2s infinite; }
+    .pulse-red { animation: pulse-red 2s infinite; }
+
+    /* Fear & Greed Gauge */
+    .gauge-container {
+      position: relative;
+      width: 200px;
+      height: 100px;
+      margin: 0 auto;
+    }
+    .gauge-bg {
+      stroke: #374151;
+      stroke-width: 12;
+      fill: none;
+    }
+    .gauge-fill {
+      stroke-width: 12;
+      fill: none;
+      stroke-linecap: round;
+      transition: stroke-dasharray 1s ease-in-out;
+    }
+
+    /* Gas price indicator */
+    .gas-indicator {
+      position: relative;
+      overflow: hidden;
+    }
+    .gas-flame {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      animation: flicker 1.5s infinite alternate;
+    }
+    @keyframes flicker {
+      0% { opacity: 0.8; transform: translateY(-50%) scale(1); }
+      100% { opacity: 1; transform: translateY(-50%) scale(1.1); }
+    }
+
+    /* Scrolling ticker */
+    @keyframes scroll {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .ticker-scroll {
+      animation: scroll 60s linear infinite;
+      white-space: nowrap;
+    }
+
+    /* Price change animations */
+    @keyframes flash-green {
+      0% { background-color: transparent; }
+      50% { background-color: rgba(34, 197, 94, 0.3); }
+      100% { background-color: transparent; }
+    }
+    @keyframes flash-red {
+      0% { background-color: transparent; }
+      50% { background-color: rgba(239, 68, 68, 0.3); }
+      100% { background-color: transparent; }
+    }
+    .flash-green { animation: flash-green 0.5s ease-in-out; }
+    .flash-red { animation: flash-red 0.5s ease-in-out; }
