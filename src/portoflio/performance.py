@@ -8,7 +8,7 @@ from datetime import datetime
 from src.variables_fetcher import load_json_file
 
 
-def categorize_history_by_time(portfolio_history):
+def categorize_history_by_time(portfolio_history, test_date=None):
     """
     Categorize portfolio history into predefined time periods.
 
@@ -17,13 +17,15 @@ def categorize_history_by_time(portfolio_history):
 
     Args:
         portfolio_history (list): List of portfolio history entries.
+        test_date (datetime, optional): Date to use for testing purposes.
+        Defaults to None, which uses the current date.
 
     Returns:
         dict: Dictionary of categorized history data points by time period.
     """
     chart_data = {"1D": [], "1W": [], "1M": [], "3M": [], "1Y": [], "All": []}
 
-    now = datetime.now()
+    now = test_date or datetime.now()
 
     for entry in portfolio_history:
         entry_date = datetime.strptime(entry["datetime"], "%Y-%m-%d %H:%M:%S")

@@ -1,3 +1,7 @@
+"""
+Test for the get_holdings function in the portfolio module.
+"""
+
 from unittest.mock import patch
 
 from src.portoflio.holdings import get_holdings
@@ -106,6 +110,6 @@ def test_get_holdings_empty_api_response():
         holdings, current_value, initial_investment = get_holdings()
 
         # Verify results
-        assert holdings == [], "Should return empty holdings list"
+        assert not holdings, "Should return empty holdings list"
         assert current_value == 0, "Total value should be 0"
         assert initial_investment == 0, "Initial investment should be 0"
