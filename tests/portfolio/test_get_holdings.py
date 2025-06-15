@@ -4,7 +4,7 @@ Test for the get_holdings function in the portfolio module.
 
 from unittest.mock import patch
 
-from src.portoflio.holdings import get_holdings
+from src.portfolio.holdings import get_holdings
 
 
 def test_get_holdings():
@@ -49,8 +49,8 @@ def test_get_holdings():
     }
 
     # Apply patches
-    with patch("src.portoflio.holdings.load_json_file") as mock_load_json, patch(
-        "src.portoflio.holdings.get_crypto_data_by_symbols"
+    with patch("src.portfolio.holdings.load_json_file") as mock_load_json, patch(
+        "src.portfolio.holdings.get_crypto_data_by_symbols"
     ) as mock_get_crypto:
         # Configure mocks
         mock_load_json.side_effect = lambda path: (
@@ -99,8 +99,8 @@ def test_get_holdings_empty_api_response():
     }
 
     # Apply patches
-    with patch("src.portoflio.holdings.load_json_file") as mock_load_json, patch(
-        "src.portoflio.holdings.get_crypto_data_by_symbols"
+    with patch("src.portfolio.holdings.load_json_file") as mock_load_json, patch(
+        "src.portfolio.holdings.get_crypto_data_by_symbols"
     ) as mock_get_crypto:
         # Configure mocks to simulate API failure
         mock_load_json.return_value = mock_portfolio

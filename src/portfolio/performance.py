@@ -80,7 +80,7 @@ def get_portfolio_performance():
             - list: Transaction entries.
             - str: JSON string of chart data categorized by time period.
     """
-    transactions = load_json_file("//config/transactions.json")
+    transactions = load_json_file("./config/transactions.json")
     portfolio_history = load_json_file("./config/portfolio_history.json")
 
     chart_data = categorize_history_by_time(portfolio_history)

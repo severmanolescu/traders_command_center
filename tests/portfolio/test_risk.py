@@ -2,7 +2,7 @@
 Test risk calculations in the portfolio module.
 """
 
-from src.portoflio.risk import (
+from src.portfolio.risk import (
     calculate_portfolio_volatility,
     calculate_risk_level,
     determine_risk_level,

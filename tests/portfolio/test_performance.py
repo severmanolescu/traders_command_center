@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from unittest.mock import patch
 
-from src.portoflio.performance import (
+from src.portfolio.performance import (
     categorize_history_by_time,
     get_portfolio_performance,
     sort_chart_data,
@@ -109,8 +109,8 @@ def test_get_portfolio_performance():
     ]
 
     # Apply patches to mock file loading
-    with patch("src.portoflio.performance.load_json_file") as mock_load_json, patch(
-        "src.portoflio.performance.datetime"
+    with patch("src.portfolio.performance.load_json_file") as mock_load_json, patch(
+        "src.portfolio.performance.datetime"
     ) as mock_datetime:
 
         # Configure mocks

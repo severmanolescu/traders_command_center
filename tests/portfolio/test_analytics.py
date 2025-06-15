@@ -5,7 +5,7 @@ Test cases for portfolio analytics functions.
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-from src.portoflio.analytics import (
+from src.portfolio.analytics import (
     calculate_changes_from_history,
     calculate_diversity_score,
     calculate_metrics_from_portfolio_history,
@@ -99,7 +99,7 @@ def test_calculate_changes_from_history():
 
     # Mock the load_and_normalize_history function to return our test data
     with patch(
-        "src.portoflio.analytics.load_and_normalize_history", return_value=mock_history
+        "src.portfolio.analytics.load_and_normalize_history", return_value=mock_history
     ):
         changes = calculate_changes_from_history()
 
@@ -121,7 +121,7 @@ def test_calculate_changes_from_history():
 def test_calculate_changes_from_empty_history():
     """Test that default changes are returned when history is empty."""
     # Mock empty history
-    with patch("src.portoflio.analytics.load_and_normalize_history", return_value=[]):
+    with patch("src.portfolio.analytics.load_and_normalize_history", return_value=[]):
         changes = calculate_changes_from_history()
         default = default_changes()
 
@@ -168,7 +168,7 @@ def test_calculate_diversity_score():
 def test_calculate_metrics_from_portfolio_history_empty_data():
     """Test metrics calculation with empty portfolio history."""
     # Mock empty portfolio history
-    with patch("src.portoflio.analytics.load_json_file", return_value=[]):
+    with patch("src.portfolio.analytics.load_json_file", return_value=[]):
         max_drawdown, sharpe_ratio = calculate_metrics_from_portfolio_history()
 
         # Verify that the function handles empty data properly

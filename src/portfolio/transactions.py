@@ -27,7 +27,7 @@ def load_transactions():
 
     if len(transactions) == 0:
         logger.error("No transactions found in the JSON file.")
-        return None
+        return []
 
     # Convert timestamps to datetime objects for sorting
     for transaction in transactions:

@@ -9,14 +9,14 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from src.portoflio.holdings import get_holdings
-from src.portoflio.performance import get_portfolio_performance
-from src.portoflio.risk import (
+from src.portfolio.holdings import get_holdings
+from src.portfolio.performance import get_portfolio_performance
+from src.portfolio.risk import (
     calculate_portfolio_volatility,
     calculate_risk_level,
     determine_risk_level,
 )
-from src.portoflio.transactions import load_transactions
+from src.portfolio.transactions import load_transactions
 from src.variables_fetcher import get_atl_ath, load_json_file
 
 logger = logging.getLogger(__name__)
@@ -332,5 +332,5 @@ def calculate_portfolio_data():
         # Risk Analysis
         "risk_levels": risk_levels,
         "max_drawdown": max_drawdown,
-        "sharpe_rati": sharpe_ratio,
+        "sharpe_ratio": sharpe_ratio,
     }

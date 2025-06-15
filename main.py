@@ -20,8 +20,8 @@ from src.crypto.crypto_market_global_data import get_dict_crypto_market_global_d
 from src.crypto.fear_and_greed_handler import get_fear_greed_data
 from src.data_base.data_base_handler import initialize_data_base
 from src.logger import setup_logging
-from src.portoflio.analytics import calculate_portfolio_data
-from src.portoflio.transactions import (
+from src.portfolio.analytics import calculate_portfolio_data
+from src.portfolio.transactions import (
     create_csv_content,
     load_transactions_by_symbol,
     update_buy,
@@ -31,7 +31,7 @@ from src.portoflio.transactions import (
 app = Flask(__name__)
 app.secret_key = "123123123123123123"
 
-DB_FILE = "./data_bases/trades.db"
+DB_FILE = "./data_base/trades.db"
 
 setup_logging()
 logger = logging.getLogger(__name__)

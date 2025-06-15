@@ -29,7 +29,7 @@ def clean_logs_dir():
 
     logs_dir = Path(LOGS_PATHS)
     if logs_dir.exists():
-        for file in logs_dir.glob("*.log*"):
+        for file in logs_dir.glob("*.*"):
             file.unlink()
         logs_dir.rmdir()
     yield
@@ -40,7 +40,7 @@ def clean_logs_dir():
     root_logger.handlers.clear()
 
     if logs_dir.exists():
-        for file in logs_dir.glob("*.log*"):
+        for file in logs_dir.glob("*.*"):
             file.unlink()
         logs_dir.rmdir()
 
