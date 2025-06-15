@@ -180,7 +180,7 @@ def calculate_diversity_score(holdings, max_score=10):
     allocations = []
 
     for h in holdings:
-        allocations.append(h["percentage"])
+        allocations.append(h["allocation"])
 
     # Calculate Herfindahl-Hirschman Index (HHI) - a measure of concentration
     # HHI is the sum of squared percentages (lower is more diverse)
@@ -281,7 +281,7 @@ def calculate_portfolio_data():
 
     if holdings:
         weighted_change = sum(
-            holding["day_change"] * holding["percentage"] / 100 for holding in holdings
+            holding["day_change"] * holding["allocation"] / 100 for holding in holdings
         )
     else:
         weighted_change = 0

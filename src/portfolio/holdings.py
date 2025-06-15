@@ -28,20 +28,17 @@ def get_holdings():
         return holdings, 0, 0
 
     current_value = 0
+    initial_investment = 0
+
     for symbol, data in portfolio.items():
         if symbol != "last_update":
             coin_data = coins_data["data"][symbol]
+
             if coin_data:
                 current_price = coin_data["quote"]["USD"]["price"]
                 quantity = data["quantity"]
                 current_value += current_price * quantity
 
-    initial_investment = 0
-    for symbol, data in portfolio.items():
-        if symbol != "last_update":
-            coin_data = coins_data["data"][symbol]
-
-            if coin_data:
                 quantity = data["quantity"]
                 avg_price = data["average_price"]
                 total_investment = data["total_investment"]
@@ -67,7 +64,6 @@ def get_holdings():
                     "avg_price": avg_price,
                     "current_price": coin_price,
                     "value": value,
-                    "percentage": allocation,
                     "day_change": round(
                         coin_data["quote"]["USD"]["percent_change_24h"], 2
                     ),

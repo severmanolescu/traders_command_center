@@ -39,7 +39,7 @@ def calculate_risk_level(holdings):
 
     for holding in holdings:
         symbol = holding["symbol"]
-        allocation = holding["percentage"]
+        allocation = holding["allocation"]
         risk_score = asset_risk_levels.get(symbol, default_risk)
 
         weighted_risk += risk_score * allocation
@@ -80,7 +80,7 @@ def calculate_portfolio_volatility(holdings):
     weighted_volatility = 0
 
     for holding in holdings:
-        allocation = holding["percentage"]
+        allocation = holding["allocation"]
 
         week_volatility = abs(holding["week_change"])
         annualized_volatility = week_volatility * 3.7  # Rough conversion to annual
