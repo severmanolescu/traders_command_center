@@ -1,6 +1,6 @@
 """
 Calculate portfolio analytics such as profit/loss, changes over time,
-iversity score, risk metrics, and more.
+diversity score, risk metrics, and more.
 """
 
 import logging

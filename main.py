@@ -27,9 +27,10 @@ from src.portfolio.transactions import (
     update_buy,
     update_sell,
 )
+from src.variables_fetcher import get_api_key
 
 app = Flask(__name__)
-app.secret_key = "123123123123123123"
+app.secret_key = get_api_key("FLASK_SECRET_KEY")
 
 DB_FILE = "./data_base/trades.db"
 

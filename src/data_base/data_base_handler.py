@@ -22,27 +22,25 @@ def initialize_data_base(data_base_file_path):
             "Created directory for file: %s", os.path.dirname(data_base_file_path)
         )
 
-    conn = sqlite3.connect(data_base_file_path)
-    conn.execute(
-        """CREATE TABLE IF NOT EXISTS trades (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT,
-      pair TEXT,
-      type TEXT,
-      entry REAL,
-      stop_loss REAL,
-      take_profit REAL,
-      exit REAL,
-      profit REAL,
-      size REAL,
-      leverage REAL,
-      strategy TEXT,
-      result TEXT,
-      confidence INTEGER,
-      session TEXT,
-      note TEXT
-    )"""
-    )
-
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(data_base_file_path) as conn:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS trades (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT,
+          pair TEXT,
+          type TEXT,
+          entry REAL,
+          stop_loss REAL,
+          take_profit REAL,
+          exit REAL,
+          profit REAL,
+          size REAL,
+          leverage REAL,
+          strategy TEXT,
+          result TEXT,
+          confidence INTEGER,
+          session TEXT,
+          note TEXT
+        )"""
+        )
+        conn.commit()
