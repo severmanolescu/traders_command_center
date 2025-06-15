@@ -152,9 +152,9 @@ def test_calculate_diversity_score():
     """Test the diversity score calculation."""
     # Create mock portfolio data
     mock_portfolio = [
-        {"symbol": "BTC", "percentage": 50},
-        {"symbol": "ETH", "percentage": 30},
-        {"symbol": "XRP", "percentage": 20},
+        {"symbol": "BTC", "allocation": 50},
+        {"symbol": "ETH", "allocation": 30},
+        {"symbol": "XRP", "allocation": 20},
     ]
 
     # Calculate diversity score

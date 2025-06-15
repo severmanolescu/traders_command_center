@@ -12,9 +12,9 @@ from src.portfolio.risk import (
 def test_calculate_risk_level():
     """Test the calculation of portfolio risk level."""
     holdings = [
-        {"symbol": "BTC", "percentage": 0.5},
-        {"symbol": "ETH", "percentage": 0.3},
-        {"symbol": "XRP", "percentage": 0.2},
+        {"symbol": "BTC", "allocation": 0.5},
+        {"symbol": "ETH", "allocation": 0.3},
+        {"symbol": "XRP", "allocation": 0.2},
     ]
 
     risk_level, avg_score = calculate_risk_level(holdings)
@@ -33,9 +33,9 @@ def test_calculate_risk_level():
 def test_calculate_portfolio_volatility():
     """Test the calculation of portfolio volatility."""
     holdings = [
-        {"symbol": "BTC", "percentage": 0.5, "week_change": 0.05},
-        {"symbol": "ETH", "percentage": 0.3, "week_change": 0.03},
-        {"symbol": "XRP", "percentage": 0.2, "week_change": 0.02},
+        {"symbol": "BTC", "allocation": 0.5, "week_change": 0.05},
+        {"symbol": "ETH", "allocation": 0.3, "week_change": 0.03},
+        {"symbol": "XRP", "allocation": 0.2, "week_change": 0.02},
     ]
 
     volatility = calculate_portfolio_volatility(holdings)
