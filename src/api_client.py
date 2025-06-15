@@ -115,10 +115,8 @@ def get_eth_gas_fee(session=None):
             return safe_gas, propose_gas, fast_gas
 
         logger.error(" Failed to fetch ETH gas fees.")
-        print("❌ Failed to fetch ETH gas fees.")
         return None, None, None
     # pylint: disable=broad-exception-caught
     except Exception as e:
         logger.error(" Error fetching ETH gas fees: %s", str(e))
-        print(f"❌ Error fetching ETH gas fees: {e}")
         return None, None, None
